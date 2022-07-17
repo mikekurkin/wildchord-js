@@ -27,11 +27,11 @@ class Record(models.Model):
                 i += 1
         return l
 
-    def save(self):
+    def save(self, *args, **kwargs):
         # Add new line to the end of the contents
         if self.contents == '' or self.contents[-1] != '\n':
             self.contents += '\n'
-        return super().save()
+        return super().save(*args, **kwargs)
 
     def title_line(self):
         return "New Record" if (first := Record.nth_non_empty_line(self.contents, 1)) is None else first[:100]
