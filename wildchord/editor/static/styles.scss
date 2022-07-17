@@ -1,7 +1,7 @@
 @media (prefers-color-scheme: dark) {
     :root {
         --bs-border-color: hsl(0, 0%, 30%);
-        --bs-body-bg: hsl(0, 0%, 19%);
+        --bs-body-bg: hsl(0, 0%, 16%);
         --bs-body-color: hsl(0, 0%, 75%);
     }
     .list-group {
@@ -9,7 +9,7 @@
         --bs-list-group-active-bg: hsl(216, 50%, 48%);
         --bs-list-group-action-hover-bg: hsl(0, 0%, 24%);
         --bs-list-group-action-hover-color: hsl(0, 0%, 85%);
-        --bs-list-group-action-active-bg: hsl(0, 0%, 30%);
+        --bs-list-group-action-active-bg: hsl(0, 0%, 25%);
         --bs-list-group-action-active-color: var(--bs-list-group-action-hover-color);
     }
     .form-control,
@@ -34,6 +34,7 @@
 
 .browse-pane {
     min-width: 320px;
+    width: 320px;
 }
 
 .item-card {
@@ -42,4 +43,12 @@
 
 .contents {
     white-space: pre-wrap;
+    height: 100% !important;
+}
+
+.CodeMirror {
+    height: 100% !important;
+    font-size: 14pt;
+    font-family: 'Aile', 'Monaco', monospace !important;
+    padding-bottom: 80px;
 }
