@@ -6,11 +6,12 @@
 <link rel="stylesheet" href="{% static 'codemirror/theme/material-darker.css' %}">
 <link rel="stylesheet" href="{% static 'codemirror/theme/neat.css' %}">
 <script src="{% static 'codemirror/lib/codemirror.js' %}"></script>
+<script src="{% static 'codemirror/mode/markdown/codemirror.js' %}"></script>
 <script src="{% static 'editor.js' %}" type="module"></script>
 {% endblock %}
 
 {% block panes %}
-<div class="browse-pane d-md-flex d-none flex-column h-100">
+<div class="browse-pane d-md-flex d-none flex-column">
   <div class="navbar py-1 border-bottom row mx-0 gx-2 align-items-center">
     <div class="col">
     <div class="searchbar m-0 d-flex align-items-center">
@@ -52,7 +53,7 @@
       <div class="col-auto"><a class="h5 my-0"><span class="my-0 fa-regular fa-trash-can"></span></a></div>
     </div>
   </div>
-  <div class="editor p-0 h-100 overflow-auto">
+  <div class="editor p-0 overflow-auto">
     <textarea class="contents font-monospace" hidden></textarea>
   </div>
 </div>

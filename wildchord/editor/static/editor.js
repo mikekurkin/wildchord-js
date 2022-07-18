@@ -18,7 +18,17 @@ let env = {
       cm.setOption('theme', this.darkMode ? 'material-darker' : 'neat');
       cm.save();
     }
-  }
+  },
+  _activeRecordId: null,
+  get activeRecordId() {
+    return this._activeRecordId;
+  },
+  set activeRecordId(value) {
+    this._activeRecordId = value 
+    document.querySelectorAll(`[data-id].active, [data-id="${this._activeRecordId}"]`).forEach(card => {
+      card.classList.toggle('active', card.dataset.id === this._activeRecordId)
+    })
+  },
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,25 +40,26 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log(cm)
   
   fetch('/api/records')
-    .then(response => response.json())
-    .then(result => {
-      console.log(result);
-      let cards = new Array();
-      result.results.forEach(record => {
-        let card = recordCard(record);
-        cards.push(card);
-      });
-      document.querySelector('.browse-items > .list-group').replaceChildren(...cards);
-      if (r !== null) loadRecord(r);
+  .then(response => response.json())
+  .then(result => {
+    console.log(result);
+    let cards = new Array();
+    result.results.forEach(record => {
+      let card = recordCard(record);
+      cards.push(card);
     });
+    document.querySelector('.browse-items > .list-group').replaceChildren(...cards);
+    if (r !== null) loadRecord(r);
+  });
   
 });
 
 function loadRecord(recordId) {
   fetch(`/api/records/${recordId}`)
   .then(response => response.json())
-    .then(result => {
-      showRecord(result)
+  .then(result => {
+    showRecord(result)
+    CodeMirror.commands.save = saveCurrentRecord
   })
 }
 
@@ -61,6 +72,7 @@ function recordCard(record) {
       .toLocaleString(undefined, {month: "short", day: "numeric", 
                                   hour: "numeric", minute: "numeric"});
   recordCard.setAttribute('href', `?r=${record.id}`);
+  recordCard.classList.toggle('active', record.id === env.activeRecordId);
   recordCard.dataset.id = record.id;
   recordCard.onclick = function (e) {
     if (e.altKey || e.shiftKey || e.ctrlKey || e.metaKey) return;
@@ -72,11 +84,13 @@ function recordCard(record) {
 }
 
 function showRecord(result) {
+  saveCurrentRecord()
   const saveBtn = document.querySelector('.save-btn')
   const textArea = document.querySelector('.contents');
   if (cm !== undefined) {
     cm.toTextArea();
     textArea.dataset.activeId = null;
+    env.activeRecordId = null;
     saveBtn.onclick = null;
   }
   textArea.value = result.contents;
@@ -88,23 +102,24 @@ function showRecord(result) {
     scrollbarStyle: 'native',
     theme: env.darkMode ? 'material-darker' : 'neat',
   });
+  console.log(env.activeRecordId);
   textArea.dataset.activeId = result.id;
+  env.activeRecordId = result.id;
+  console.log(env.activeRecordId);
   saveBtn.onclick = function (e) {
     e.preventDefault();
     saveCurrentRecord();
   }
-  document.querySelectorAll('[data-id]').forEach(card => {
-    card.classList.toggle('active', card.dataset.id === result.id)
-  })
 }
 
 function saveCurrentRecord() {
   const textArea = document.querySelector('.contents');
   if (cm !== undefined) {
+    const oldContents = textArea.value;
     cm.save();
     const newContents = textArea.value;
     const id = textArea.dataset.activeId;
-    if (id !== null) {
+    if (oldContents !== newContents && id !== null) {
       fetch(`/api/records/${id}`, {
         method: 'PUT',
         headers: {
@@ -119,11 +134,10 @@ function saveCurrentRecord() {
       })
         .then(response => response.json())
         .then(result => {
-          const recordCard = document.querySelector(`[data-id=${result.id}]`)
-          if (recordCard !== null) {
-            recordCard.replaceWith(recordCard(result));
+          const oldRecordCard = document.querySelector(`[data-id="${result.id}"]`)
+          if (oldRecordCard !== null) {
+            oldRecordCard.replaceWith(recordCard(result));
           }
-          showRecord(result);
         });
     }
   }
