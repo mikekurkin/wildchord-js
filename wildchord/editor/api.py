@@ -19,6 +19,11 @@ class RecordSerializer(serializers.HyperlinkedModelSerializer):
         second_line = serializers.SerializerMethodField(
             lambda obj: obj.second_line())
 
+    author = serializers.PrimaryKeyRelatedField(
+        read_only=True,
+        default=serializers.CurrentUserDefault()
+    )
+
     def get_fields(self, *args, **kwargs):
         fields = super().get_fields(*args, **kwargs)
         request = self.context.get('request')
