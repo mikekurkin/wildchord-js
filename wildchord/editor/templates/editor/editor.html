@@ -9,6 +9,7 @@
 <script src="{% static 'codemirror/mode/markdown/codemirror.js' %}"></script>
 <script src="{% static 'codemirror/addon/scroll/simplescrollbars.js' %}"></script>
 <script src="{% static 'editor.js' %}" type="module"></script>
+{% include 'editor/item_card_template.html' %}
 {% endblock %}
 
 {% block panes %}

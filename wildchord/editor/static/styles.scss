@@ -25,10 +25,19 @@
 }
 
 .link {
-    --link-hover-color: hsl(0, 0%, 16%);
+    --link-hover-color: hsl(0, 0%, 40%);
     text-decoration: none;
     color: var(--bs-body-color);
-    :hover{color: var(--link-hover-color)}
+    &:hover{color: var(--link-hover-color) !important;}
+}
+
+.item-card {
+    // z-index: -1;
+    &:hover,
+    &:active, 
+    &.active {
+        z-index: 0;
+    }
 }
 
 .header,

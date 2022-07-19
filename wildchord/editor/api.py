@@ -1,4 +1,4 @@
-from rest_framework import permissions, serializers, viewsets
+from rest_framework import filters, permissions, serializers, viewsets
 
 from .models import Record, User
 
@@ -39,7 +39,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class RecordViewSet(viewsets.ModelViewSet):
-    queryset = Record.objects.all().order_by('-create_timestamp')
+    queryset = Record.objects.all().order_by('-update_timestamp')
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['contents']
     serializer_class = RecordSerializer
     permission_classes = [permissions.IsAuthenticated]
 

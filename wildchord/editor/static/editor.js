@@ -2,7 +2,7 @@ window.addEventListener('popstate', e => loadRecord(e.state.r));
 
 const csrftoken = getCookie('csrftoken');
 var cm;
-let darkMode;
+
 
 let env = {
   forceDark: false,
@@ -32,7 +32,6 @@ let env = {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const urlParams = new URLSearchParams(window.location.search);
   let r = null;
   if (urlParams.has('r')) r = urlParams.get('r');
@@ -41,17 +40,36 @@ document.addEventListener('DOMContentLoaded', () => {
   
   fetch('/api/records')
   .then(response => response.json())
-  .then(result => {
-    console.log(result);
+    .then(result => {
+      showBrowseCards(result)
+      if (r !== null) loadRecord(r);
+    });
+
+  function showBrowseCards(result) {
+    // console.log(result);
     let cards = new Array();
     result.results.forEach(record => {
       let card = recordCard(record);
       cards.push(card);
     });
     document.querySelector('.browse-items > .list-group').replaceChildren(...cards);
-    if (r !== null) loadRecord(r);
-  });
-  
+  }
+
+  document.querySelector('.searchbar input').addEventListener('keypress', function(e) {
+    // if (this.value === '') return;
+    console.log(e);
+    if (e.keyCode === 27) {
+      this.value = '';
+      fetch('/api/records')
+        .then(response => response.json())
+        .then(result => showBrowseCards(result));
+    }
+    if (e.keyCode === 13 || this.value.length >= 3) {
+      fetch(`/api/records?search=${this.value}`)
+        .then(response => response.json())
+        .then(result => showBrowseCards(result));
+    }
+  })
 });
 
 function loadRecord(recordId) {
@@ -64,7 +82,8 @@ function loadRecord(recordId) {
 }
 
 function recordCard(record) {
-  let recordCard = document.querySelector('.item-card').cloneNode(true);
+  const cardTemplate = document.querySelector('template#item-card-template');
+  const recordCard = cardTemplate.content.firstElementChild.cloneNode(true);
   recordCard.querySelector('.title-line').innerHTML = record.title_line;
   recordCard.querySelector('.second-line').innerHTML = record.second_line;
   recordCard.querySelector('.timestamp')
@@ -120,6 +139,7 @@ function showRecord(result) {
     browsePane.classList.remove('d-none');
     editorPane.classList.add('d-none');
   }
+  
   
 }
 
