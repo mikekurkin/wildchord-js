@@ -85,8 +85,13 @@ function recordCard(record) {
 
 function showRecord(result) {
   saveCurrentRecord()
-  const saveBtn = document.querySelector('.save-btn')
-  const textArea = document.querySelector('.contents');
+  const saveBtn = document.querySelector('.save-btn');
+  const backBtn = document.querySelector('.back-btn');
+  const browsePane = document.querySelector('.browse-pane');
+  const editorPane = document.querySelector('.editor-pane');
+  browsePane.classList.add('d-none');
+  editorPane.classList.remove('d-none');
+  const textArea = editorPane.querySelector('.contents');
   if (cm !== undefined) {
     cm.toTextArea();
     textArea.dataset.activeId = null;
@@ -110,6 +115,12 @@ function showRecord(result) {
     e.preventDefault();
     saveCurrentRecord();
   }
+  backBtn.onclick = function (e) {
+    e.preventDefault();
+    browsePane.classList.remove('d-none');
+    editorPane.classList.add('d-none');
+  }
+  
 }
 
 function saveCurrentRecord() {

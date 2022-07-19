@@ -18,6 +18,17 @@
         background-color: var(--bs-body-bg);
         color: var(--bs-body-color);
     }
+    .link:hover{
+        --link-hover-color: hsl(0, 0%, 60%);
+        color: var(--link-hover-color);
+    }
+}
+
+.link {
+    --link-hover-color: hsl(0, 0%, 16%);
+    text-decoration: none;
+    color: var(--bs-body-color);
+    :hover{color: var(--link-hover-color)}
 }
 
 .header,
@@ -32,9 +43,18 @@
     opacity: 40%;
 }
 
+
 .browse-pane {
     min-width: 320px;
     width: 320px;
+    
+}
+
+@media only screen and (max-width: 768px) {
+    .browse-pane {
+        width: auto;
+        border-right: none !important;
+    }
 }
 
 .item-card {
@@ -69,8 +89,13 @@ body {
     padding-top: 20px;
 }
 
+.CodeMirror-scroll {
+    margin-right: 0 !important;
+}
+
 .panes,
-.editor {
+.editor,
+.browse-items {
     max-height: calc(100% - 45px);
     height: calc(100% - 45px);
 }
