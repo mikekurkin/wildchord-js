@@ -20,8 +20,7 @@ class RecordSerializer(serializers.HyperlinkedModelSerializer):
             lambda obj: obj.second_line())
 
     author = serializers.PrimaryKeyRelatedField(
-        read_only=True,
-        default=serializers.CurrentUserDefault()
+        read_only=True
     )
 
     def get_fields(self, *args, **kwargs):
@@ -44,6 +43,11 @@ class RecordViewSet(viewsets.ModelViewSet):
     search_fields = ['contents']
     serializer_class = RecordSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    
 
     def get_queryset(self):
         user = self.request.user

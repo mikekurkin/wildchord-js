@@ -19,15 +19,36 @@ let env = {
       cm.save();
     }
   },
+
   _activeRecordId: null,
   get activeRecordId() {
     return this._activeRecordId;
   },
   set activeRecordId(value) {
-    this._activeRecordId = value 
+    if (value !== this._activeRecordId) {
+      history.pushState({ r: value }, '', `?r=${value}`);
+    }
+    this._activeRecordId = value; 
     document.querySelectorAll(`[data-id].active, [data-id="${this._activeRecordId}"]`).forEach(card => {
       card.classList.toggle('active', card.dataset.id === this._activeRecordId)
-    })
+    });
+    if (this._activeRecordId !== null) loadRecord(this._activeRecordId);
+  },
+
+  _browseRecords: {},
+  get browseRecords() {
+    return this._browseRecords;
+  },
+  set browseRecords(records) {
+    if (Array.isArray(records)) {
+      const newRecords = new Object();
+      records.forEach(record => newRecords[record.id] = record)
+      this._browseRecords = newRecords;
+    } else if (typeof records === 'object') {
+      this._browseRecords = records;
+    }
+    localStorage.setItem("browseRecords", JSON.stringify(this._browseRecords));
+    showEnvBrowseCards();
   },
 }
 
@@ -35,49 +56,54 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   let r = null;
   if (urlParams.has('r')) r = urlParams.get('r');
-  
-  console.log(cm)
-  
+
+  try { env.browseRecords = JSON.parse(localStorage.getItem("browseRecords")); }
+  catch (e) { console.log(e); }
   fetch('/api/records')
   .then(response => response.json())
     .then(result => {
-      showBrowseCards(result)
-      if (r !== null) loadRecord(r);
+      env.browseRecords = result.results;
+      env.activeRecordId = r;
+      const activeCard = document.querySelector('[data-id].active');
+      if (activeCard !== null) activeCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
     });
 
-  function showBrowseCards(result) {
-    // console.log(result);
-    let cards = new Array();
-    result.results.forEach(record => {
-      let card = recordCard(record);
-      cards.push(card);
-    });
-    document.querySelector('.browse-items > .list-group').replaceChildren(...cards);
-  }
-
-  document.querySelector('.searchbar input').addEventListener('keypress', function(e) {
-    // if (this.value === '') return;
+  document.querySelector('.searchbar input').addEventListener('keypress', function (e) {
     console.log(e);
     if (e.keyCode === 27) {
       this.value = '';
       fetch('/api/records')
         .then(response => response.json())
-        .then(result => showBrowseCards(result));
+        .then(result => env.browseRecords = result.results);
     }
     if (e.keyCode === 13 || this.value.length >= 3) {
       fetch(`/api/records?search=${this.value}`)
         .then(response => response.json())
-        .then(result => showBrowseCards(result));
+        .then(result => env.browseRecords = result.results);
     }
-  })
+  });
+  document.querySelectorAll('.new-btn').forEach(e => e.addEventListener('click', createNewRecord));
+  document.querySelectorAll('.del-btn').forEach(e => e.addEventListener('click', deleteCurrentRecord));
 });
+
+function showEnvBrowseCards() {
+  let cards = new Array();
+  let result = Object.values(env.browseRecords).sort(
+    (a, b) => new Date(b.update_timestamp).getTime() - new Date(a.update_timestamp).getTime()
+  );
+  result.forEach(record => {
+    let card = recordCard(record);
+    cards.push(card);
+  });
+  document.querySelector('.browse-items > .list-group').replaceChildren(...cards);
+}
 
 function loadRecord(recordId) {
   fetch(`/api/records/${recordId}`)
   .then(response => response.json())
   .then(result => {
-    showRecord(result)
-    CodeMirror.commands.save = saveCurrentRecord
+    showRecord(result);
+    CodeMirror.commands.save = saveCurrentRecord;
   })
 }
 
@@ -96,8 +122,8 @@ function recordCard(record) {
   recordCard.onclick = function (e) {
     if (e.altKey || e.shiftKey || e.ctrlKey || e.metaKey) return;
     e.preventDefault();
-    loadRecord(this.dataset.id);
-    history.pushState({ r: this.dataset.id }, '', `?r=${this.dataset.id}`);
+    env.activeRecordId = this.dataset.id;
+    
   }
   return recordCard;
 }
@@ -113,13 +139,10 @@ function showRecord(result) {
   const textArea = editorPane.querySelector('.contents');
   if (cm !== undefined) {
     cm.toTextArea();
-    textArea.dataset.activeId = null;
-    env.activeRecordId = null;
     saveBtn.onclick = null;
   }
   textArea.value = result.contents;
   cm = CodeMirror.fromTextArea(textArea, {
-    // lineWrapping: true,
     lineNumbers: true,
     autofocus: true,
     viewportMargin: Infinity,
@@ -127,10 +150,6 @@ function showRecord(result) {
     mode: 'chords',
     theme: env.darkMode ? 'material-darker' : 'neat',
   });
-  // console.log(env.activeRecordId);
-  textArea.dataset.activeId = result.id;
-  env.activeRecordId = result.id;
-  // console.log(env.activeRecordId);
   saveBtn.onclick = function (e) {
     e.preventDefault();
     saveCurrentRecord();
@@ -142,6 +161,48 @@ function showRecord(result) {
   }
   
   
+
+function createNewRecord() {
+  saveCurrentRecord();
+  fetch(`/api/records`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrftoken,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    mode: 'same-origin', // Do not send CSRF token to another domain.
+    body: JSON.stringify({
+      contents: '',
+    }),
+  })
+    .then(response => response.json())
+    .then(result => {
+      env.browseRecords = { ...env.browseRecords, [result.id]: result }
+      env.activeRecordId = result.id;
+    });
+}
+
+function deleteCurrentRecord() {
+  const id = env.activeRecordId
+  fetch(`/api/records/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'X-CSRFToken': csrftoken,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    mode: 'same-origin', // Do not send CSRF token to another domain.
+  })
+    .then(response => {
+      if (response.status == 204) {
+        console.log(response);
+        let newBrowseRecords = env.browseRecords;
+        delete newBrowseRecords[id];
+        env.browseRecords = newBrowseRecords;
+        env.activeRecordId = null;
+      }
+    });
 }
 
 function saveCurrentRecord() {
@@ -150,7 +211,7 @@ function saveCurrentRecord() {
     const oldContents = textArea.value;
     cm.save();
     const newContents = textArea.value;
-    const id = textArea.dataset.activeId;
+    const id = env.activeRecordId;
     if (oldContents !== newContents && id !== null) {
       fetch(`/api/records/${id}`, {
         method: 'PUT',
@@ -165,12 +226,7 @@ function saveCurrentRecord() {
         }),
       })
         .then(response => response.json())
-        .then(result => {
-          const oldRecordCard = document.querySelector(`[data-id="${result.id}"]`)
-          if (oldRecordCard !== null) {
-            oldRecordCard.replaceWith(recordCard(result));
-          }
-        });
+        .then(result => env.browseRecords = { ...env.browseRecords, [result.id]: result });
     }
   }
 }
