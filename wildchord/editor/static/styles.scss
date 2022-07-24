@@ -1,3 +1,8 @@
+:root {
+    --toolbar-height: 45px;
+    --browse-pane-width: 320px;
+}
+
 @media (prefers-color-scheme: dark) {
     :root {
         --bs-border-color: hsl(0, 0%, 30%);
@@ -43,8 +48,8 @@
 .header,
 .navbar,
 .toolbar {
-    min-height: 45px !important;
-    height: 45px !important;
+    min-height: var(--toolbar-height) !important;
+    height: var(--toolbar-height) !important;
 }
 
 .search-icon {
@@ -54,15 +59,23 @@
 
 
 .browse-pane {
-    min-width: 320px;
-    width: 320px;
-    
+    min-width: var(--browse-pane-width);
+    width: var(--browse-pane-width);
+}
+
+.editor-pane {
+    max-width: calc(100% - var(--browse-pane-width));
+    width: calc(100% - var(--browse-pane-width));
 }
 
 @media only screen and (max-width: 768px) {
     .browse-pane {
-        width: auto;
+        width: 100%;
         border-right: none !important;
+    }
+    .editor-pane {
+        min-width: 100%;
+        width: 100%;
     }
 }
 
@@ -87,26 +100,35 @@ body {
     -webkit-overflow-scrolling: touch;
 }
 
+@font-face {
+    font-family: 'Iosevka SS07';
+    src: url(iosevka-ss07-regular.woff2) format('woff');
+}
+
 .CodeMirror {
     height: 100% !important;
     font-size: 14pt;
-    font-family: 'Iosevka SS07', 'Iosevka', 'Monaco', monospace !important;
+    font-family: 'Iosevka SS07', monospace !important;
 }
 
 .CodeMirror-sizer {
     padding-bottom: 50px !important;
     padding-top: 20px;
+    padding-right: 10px;
+    border-right: 0 !important;
 }
 
 .CodeMirror-scroll {
     margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 .panes,
 .editor,
 .browse-items {
-    max-height: calc(100% - 45px);
-    height: calc(100% - 45px);
+    max-height: calc(100% - var(--toolbar-height));
+    height: calc(100% - var(--toolbar-height));
 }
 
 .browse-pane,

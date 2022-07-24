@@ -119,17 +119,18 @@ function showRecord(result) {
   }
   textArea.value = result.contents;
   cm = CodeMirror.fromTextArea(textArea, {
-    lineWrapping: true,
+    // lineWrapping: true,
     lineNumbers: true,
     autofocus: true,
     viewportMargin: Infinity,
     scrollbarStyle: 'native',
+    mode: 'chords',
     theme: env.darkMode ? 'material-darker' : 'neat',
   });
-  console.log(env.activeRecordId);
+  // console.log(env.activeRecordId);
   textArea.dataset.activeId = result.id;
   env.activeRecordId = result.id;
-  console.log(env.activeRecordId);
+  // console.log(env.activeRecordId);
   saveBtn.onclick = function (e) {
     e.preventDefault();
     saveCurrentRecord();

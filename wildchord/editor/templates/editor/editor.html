@@ -6,8 +6,9 @@
 <link rel="stylesheet" href="{% static 'codemirror/theme/material-darker.css' %}">
 <link rel="stylesheet" href="{% static 'codemirror/theme/neat.css' %}">
 <script src="{% static 'codemirror/lib/codemirror.js' %}"></script>
-<script src="{% static 'codemirror/mode/markdown/codemirror.js' %}"></script>
-<script src="{% static 'codemirror/addon/scroll/simplescrollbars.js' %}"></script>
+{% comment %} <script src="{% static 'codemirror/mode/markdown/markdown.js' %}"></script> {% endcomment %}
+<script src="{% static 'codemirror/addon/mode/simple.js' %}"></script>
+<script src="{% static 'chord-md.js' %}" type="module"></script>
 <script src="{% static 'editor.js' %}" type="module"></script>
 {% include 'editor/item_card_template.html' %}
 {% endblock %}
@@ -36,8 +37,8 @@
   </div>
 </div>
 <div class="editor-pane d-md-flex flex-column d-none flex-fill">
-  <div class="toolbar px-2 py-1 border-bottom">
-    <div class="row p-0 m-0 gx-0 align-items-center">
+  <div class="toolbar border-bottom">
+    <div class="row gx-0 align-items-center">
       <div class="col-auto d-inline-block d-md-none"><button class="back-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-regular fa-angle-left"></span></button></div>
       <div class="col-auto"><button class="new-btn btn btn-link link my-0 px-2.11.5/dist/umd/popper.min.js"><span class="h4 my-0 fa-regular fa-pen-to-square"></span></button></div>
       <div class="col-auto"><button class="save-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-solid fa-floppy-disk"></span></button></div>
