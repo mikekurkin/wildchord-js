@@ -18,12 +18,12 @@
     <div class="body vh-100 d-flex flex-column overflow-hidden">
       <div class="header flex-shrink-1 pt-2 px-3 border-bottom row">
         <div class="col-auto my-0"><a href="{% url 'index' %}" class="h5 link"><h5>WildChord</h5></a></div>
-        {% if user.is_authenticated %}
+        {% comment %} {% if user.is_authenticated %} {% endcomment %}
         <div class="user col-auto ms-auto">
-          {{ user.username }}
+          <span class="username">{% comment %} {{ user.username }} {% endcomment %}</span>
           <i class="fa-solid fa-angle-down"></i>
         </div>
-        {% endif %}
+        {% comment %} {% endif %} {% endcomment %}
       </div>
       <div class="panes flex-fill d-flex flex-row overflow-hidden">
         {% block panes %}{% endblock %}

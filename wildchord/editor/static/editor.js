@@ -1,8 +1,21 @@
-window.addEventListener('popstate', e => loadRecord(e.state.r));
+window.addEventListener('popstate', e => {
+  // TODO: Fix somehow. Same as in set activeRecordId(value), but no push state
+  env._activeRecordId = e.state.r; 
+  document.querySelectorAll(`[data-id].active, [data-id="${env._activeRecordId}"]`).forEach(card => {
+    card.classList.toggle('active', card.dataset.id === env._activeRecordId)
+  });
+  if (env._activeRecordId !== null) {
+    loadRecord(env._activeRecordId);
+  } else {
+    if (cm !== undefined) {
+      cm.toTextArea();
+      saveBtn.onclick = null;
+    }
+  }
+});
 
 const csrftoken = getCookie('csrftoken');
 var cm;
-
 
 let env = {
   forceDark: false,
@@ -21,18 +34,24 @@ let env = {
   },
 
   _activeRecordId: null,
-  get activeRecordId() {
-    return this._activeRecordId;
-  },
+  get activeRecordId() { return this._activeRecordId; },
   set activeRecordId(value) {
     if (value !== this._activeRecordId) {
-      history.pushState({ r: value }, '', `?r=${value}`);
+      // console.log(value);
+      history.pushState({ r: value }, '', (value === null) ? '/' : `?r=${value}`);
     }
     this._activeRecordId = value; 
     document.querySelectorAll(`[data-id].active, [data-id="${this._activeRecordId}"]`).forEach(card => {
       card.classList.toggle('active', card.dataset.id === this._activeRecordId)
     });
-    if (this._activeRecordId !== null) loadRecord(this._activeRecordId);
+    if (this._activeRecordId !== null) {
+      loadRecord(this._activeRecordId);
+    } else {
+      if (cm !== undefined) {
+        cm.toTextArea();
+        saveBtn.onclick = null;
+      }
+    } 
   },
 
   _browseRecords: {},
@@ -49,24 +68,49 @@ let env = {
     }
     localStorage.setItem("browseRecords", JSON.stringify(this._browseRecords));
     showEnvBrowseCards();
+    
+    const activeCard = document.querySelector('[data-id].active');
+    if (activeCard !== null) activeCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
   },
+
+  get profile() { return JSON.parse(sessionStorage.getItem('profile')); },
+  set profile(value) { sessionStorage.setItem('profile', JSON.stringify(value)); }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+
+  try { env.browseRecords = JSON.parse(localStorage.getItem("browseRecords")); }
+  catch (e) { console.log(e); }
+
+  if (env.profile === null) {
+    fetch('/api/profile')
+      .then(response => response.json())
+      .then(result => env.profile = result)
+      .then(fetchRecords);
+  } else { fetchRecords(); }
+
+  function fetchRecords() {
+    if (!env.profile.is_anonymous) {
+      fetch('/api/records')
+        .then(response => response.json())
+        .then(result => {
+          env.browseRecords = result.results === undefined ? {} : result.results;
+        });
+    }
+    document.querySelector('.username').innerHTML = env.profile.is_anonymous ? 'Sign Up' : env.profile.username;
+    document.querySelector('.browse-pane').classList.toggle('d-none', env.profile.is_anonymous);
+    document.querySelector('.browse-pane').classList.toggle('d-md-flex', !env.profile.is_anonymous);
+    document.querySelector(':root').style.setProperty('--browse-pane-width', env.profile.is_anonymous ? '0' : '320px');
+  }
+
+  
+  
   const urlParams = new URLSearchParams(window.location.search);
   let r = null;
   if (urlParams.has('r')) r = urlParams.get('r');
 
-  try { env.browseRecords = JSON.parse(localStorage.getItem("browseRecords")); }
-  catch (e) { console.log(e); }
-  fetch('/api/records')
-    .then(response => response.json())
-    .then(result => {
-      env.browseRecords = result.results === undefined ? {} : result.results;
-      env.activeRecordId = r;
-      const activeCard = document.querySelector('[data-id].active');
-      if (activeCard !== null) activeCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    });
+  env.activeRecordId = r;
+
 
   document.querySelector('.searchbar input').addEventListener('keypress', function (e) {
     console.log(e);
@@ -100,10 +144,12 @@ function showEnvBrowseCards() {
 
 function loadRecord(recordId) {
   fetch(`/api/records/${recordId}`)
-  .then(response => response.json())
-  .then(result => {
-    showRecord(result);
-    CodeMirror.commands.save = saveCurrentRecord;
+    .then(response => response.json())
+    .then(result => {
+      if (result.id !== undefined) {
+        showRecord(result);
+        CodeMirror.commands.save = saveCurrentRecord;
+      }
   })
 }
 
@@ -132,6 +178,7 @@ function showRecord(result) {
   saveCurrentRecord()
   const saveBtn = document.querySelector('.save-btn');
   const backBtn = document.querySelector('.back-btn');
+  const delBtn = document.querySelector('.del-btn');
   const browsePane = document.querySelector('.browse-pane');
   const editorPane = document.querySelector('.editor-pane');
   browsePane.classList.add('d-none');
@@ -149,10 +196,17 @@ function showRecord(result) {
     scrollbarStyle: 'native',
     mode: 'chords',
     theme: env.darkMode ? 'material-darker' : 'neat',
+    readOnly: result.can_edit ? false : 'nocursor',
   });
-  saveBtn.onclick = function (e) {
-    e.preventDefault();
-    saveCurrentRecord();
+  saveBtn.toggleAttribute('hidden', !result.can_edit);
+  delBtn.toggleAttribute('hidden', !result.can_edit);
+  if (result.can_edit) {
+    saveBtn.onclick = function (e) {
+      e.preventDefault();
+      saveCurrentRecord();
+    }
+  } else {
+    saveBtn.onclick = null;
   }
   backBtn.onclick = function (e) {
     e.preventDefault();

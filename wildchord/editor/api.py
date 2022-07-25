@@ -10,25 +10,31 @@ from .models import Record, User
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
-        fields = ['url', 'username', 'records']
-
-    records = serializers.HyperlinkedRelatedField(
-        view_name='record-detail', many=True, read_only=True)
+        # fields = ['url', 'id', 'username', 'records']
+        fields = ['id', 'url', 'username']
 
 
 class RecordSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Record
         fields = ['id', 'url', 'contents', 'author', 'title_line', 'second_line',
-                  'create_timestamp', 'update_timestamp', 'is_public']
-        title_line = serializers.SerializerMethodField(
-            lambda obj: obj.title_line())
-        second_line = serializers.SerializerMethodField(
-            lambda obj: obj.second_line())
+                  'create_timestamp', 'update_timestamp', 'is_public', 'can_edit']
 
-    author = serializers.PrimaryKeyRelatedField(
-        read_only=True
-    )
+    author = serializers.HyperlinkedRelatedField(
+        view_name="user-detail", read_only=True)
+    title_line = serializers.SerializerMethodField()
+    second_line = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+
+    def get_title_line(_, obj):
+        return obj.title_line()
+
+    def get_second_line(_, obj):
+        return obj.second_line()
+
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        return obj.author == request.user
 
     def get_fields(self, *args, **kwargs):
         fields = super().get_fields(*args, **kwargs)
@@ -42,6 +48,24 @@ class RecordSerializer(serializers.HyperlinkedModelSerializer):
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
+
+
+class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = UserSerializer
+
+    def list(self, request, *args, **kwargs):
+        request_user = request.user
+        response = {'is_anonymous': request_user.is_anonymous}
+
+        if not request_user.is_anonymous:
+            user_instance = get_object_or_404(
+                User.objects.all(), id=request_user.id)
+            serializer = UserSerializer(
+                user_instance, context={'request': request})
+            print(serializer.data)
+            response = response | dict(serializer.data)
+
+        return Response(response)
 
 
 class IsAuthorOrPublicReadOnly(permissions.BasePermission):

@@ -85,7 +85,7 @@
 
 .contents {
     white-space: pre-wrap;
-    height: 100vh !important;
+    height: 100% !important;
 }
 
 body {
@@ -106,7 +106,7 @@ body {
 }
 
 .CodeMirror {
-    height: 100vh !important;
+    height: 100% !important;
     font-size: 14pt;
     font-family: 'Iosevka SS07', monospace !important;
 }

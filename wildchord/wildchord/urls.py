@@ -20,6 +20,7 @@ from rest_framework import routers
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'users', api.UserViewSet)
+router.register(r'profile', api.ProfileViewSet, basename='profile')
 router.register(r'records', api.RecordViewSet)
 
 urlpatterns = [
