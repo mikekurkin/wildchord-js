@@ -60,9 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
   try { env.browseRecords = JSON.parse(localStorage.getItem("browseRecords")); }
   catch (e) { console.log(e); }
   fetch('/api/records')
-  .then(response => response.json())
+    .then(response => response.json())
     .then(result => {
-      env.browseRecords = result.results;
+      env.browseRecords = result.results === undefined ? {} : result.results;
       env.activeRecordId = r;
       const activeCard = document.querySelector('[data-id].active');
       if (activeCard !== null) activeCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -74,12 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
       this.value = '';
       fetch('/api/records')
         .then(response => response.json())
-        .then(result => env.browseRecords = result.results);
+        .then(result => env.browseRecords = result.results === undefined ? {} : result.results);
     }
     if (e.keyCode === 13 || this.value.length >= 3) {
       fetch(`/api/records?search=${this.value}`)
         .then(response => response.json())
-        .then(result => env.browseRecords = result.results);
+        .then(result => env.browseRecords = result.results === undefined ? {} : result.results);
     }
   });
   document.querySelectorAll('.new-btn').forEach(e => e.addEventListener('click', createNewRecord));

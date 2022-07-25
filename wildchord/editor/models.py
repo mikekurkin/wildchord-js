@@ -17,6 +17,7 @@ class Record(models.Model):
     update_timestamp = models.DateTimeField(auto_now=True)
     id = models.CharField(
         max_length=8, unique=True, blank=True, editable=False, primary_key=True)
+    is_public = models.BooleanField(default=False)
 
     @staticmethod
     def nth_non_empty_line(ls, n):
