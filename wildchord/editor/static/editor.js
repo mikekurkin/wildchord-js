@@ -15,6 +15,7 @@ window.addEventListener('popstate', e => {
 });
 
 const csrftoken = getCookie('csrftoken');
+let jwttoken;
 var cm;
 
 let env = {
@@ -78,20 +79,39 @@ let env = {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  fetch('/api/auth/token/refresh/', {
+    method: 'POST',
+  })
+    .then(response => response.json())
+    .then(result => {
+      jwttoken = result.access;
+      if (env.profile === null) {
+        fetch('/api/auth/user/', {
+          headers: {
+            'authorization': `Bearer ${jwttoken}`,
+          }
+        })
+          .then(response => response.json())
+          .then(result => env.profile = result)
+          .then(fetchRecords);
+      } else { fetchRecords(); }
+      const urlParams = new URLSearchParams(window.location.search);
+      let r = null;
+      if (urlParams.has('r')) r = urlParams.get('r');
 
+      env.activeRecordId = r;
+    })
+  
   try { env.browseRecords = JSON.parse(localStorage.getItem("browseRecords")); }
   catch (e) { console.log(e); }
 
-  if (env.profile === null) {
-    fetch('/api/profile')
-      .then(response => response.json())
-      .then(result => env.profile = result)
-      .then(fetchRecords);
-  } else { fetchRecords(); }
-
   function fetchRecords() {
     if (!env.profile.is_anonymous) {
-      fetch('/api/records')
+      fetch('/api/records', {
+        headers: {
+          'authorization': `Bearer ${jwttoken}`,
+        }
+      })
         .then(response => response.json())
         .then(result => {
           env.browseRecords = result.results === undefined ? {} : result.results;
@@ -103,25 +123,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector(':root').style.setProperty('--browse-pane-width', env.profile.is_anonymous ? '0' : '320px');
   }
 
-  
-  
-  const urlParams = new URLSearchParams(window.location.search);
-  let r = null;
-  if (urlParams.has('r')) r = urlParams.get('r');
-
-  env.activeRecordId = r;
-
 
   document.querySelector('.searchbar input').addEventListener('keypress', function (e) {
     console.log(e);
     if (e.keyCode === 27) {
       this.value = '';
-      fetch('/api/records')
+      fetch('/api/records', {
+        headers: {
+          'authorization': `Bearer ${jwttoken}`,
+        }
+      })
         .then(response => response.json())
         .then(result => env.browseRecords = result.results === undefined ? {} : result.results);
     }
     if (e.keyCode === 13 || this.value.length >= 3) {
-      fetch(`/api/records?search=${this.value}`)
+      fetch(`/api/records?search=${this.value}`, {
+        headers: {
+          'authorization': `Bearer ${jwttoken}`,
+        }
+      })
         .then(response => response.json())
         .then(result => env.browseRecords = result.results === undefined ? {} : result.results);
     }
@@ -143,7 +163,11 @@ function showEnvBrowseCards() {
 }
 
 function loadRecord(recordId) {
-  fetch(`/api/records/${recordId}`)
+  fetch(`/api/records/${recordId}`, {
+    headers: {
+      'authorization': `Bearer ${jwttoken}`,
+    },
+  })
     .then(response => response.json())
     .then(result => {
       if (result.id !== undefined) {
@@ -222,6 +246,7 @@ function createNewRecord() {
     method: 'POST',
     headers: {
       'X-CSRFToken': csrftoken,
+      'authorization': `Bearer ${jwttoken}`,
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
@@ -243,6 +268,7 @@ function deleteCurrentRecord() {
     method: 'DELETE',
     headers: {
       'X-CSRFToken': csrftoken,
+      'authorization': `Bearer ${jwttoken}`,
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
@@ -271,6 +297,7 @@ function saveCurrentRecord() {
         method: 'PUT',
         headers: {
           'X-CSRFToken': csrftoken,
+          'authorization': `Bearer ${jwttoken}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },

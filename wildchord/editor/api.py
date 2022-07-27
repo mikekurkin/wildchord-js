@@ -1,3 +1,4 @@
+from dj_rest_auth.views import UserDetailsView
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, serializers, viewsets
 from rest_framework.decorators import permission_classes
@@ -50,19 +51,19 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSerializer
 
 
-class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
+class ProfileView(UserDetailsView):
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     serializer_class = UserSerializer
 
-    def list(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         request_user = request.user
         response = {'is_anonymous': request_user.is_anonymous}
 
         if not request_user.is_anonymous:
             user_instance = get_object_or_404(
                 User.objects.all(), id=request_user.id)
-            serializer = UserSerializer(
+            serializer = self.serializer_class(
                 user_instance, context={'request': request})
-            print(serializer.data)
             response = response | dict(serializer.data)
 
         return Response(response)
