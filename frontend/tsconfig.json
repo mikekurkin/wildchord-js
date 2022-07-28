@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "es2015",
+    "target": "es2015",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "strict": true,
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node", "codemirror"],
+  },
+  "exclude": [
+    "node_modules"
+  ],
+}

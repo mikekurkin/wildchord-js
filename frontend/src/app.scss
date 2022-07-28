@@ -1,0 +1,199 @@
+
+@import '../node_modules/codemirror/lib/codemirror.css';
+@import '../node_modules/codemirror/theme/material-darker.css';
+@import '../node_modules/codemirror/theme/neat.css';
+
+:root {
+    --toolbar-height: 45px;
+    --browse-pane-width: 320px;
+    --fdas: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bs-border-color: hsl(0, 0%, 30%);
+        --bs-body-bg: hsl(0, 0%, 16%);
+        --bs-body-color: hsl(0, 0%, 75%);
+    }
+    
+    .list-group {
+        --bs-list-group-active-border-color: hsl(216, 100%, 48%);
+        --bs-list-group-active-bg: hsl(216, 50%, 48%);
+        --bs-list-group-action-hover-bg: hsl(0, 0%, 24%);
+        --bs-list-group-action-hover-color: hsl(0, 0%, 85%);
+        --bs-list-group-action-active-bg: hsl(0, 0%, 25%);
+        --bs-list-group-action-active-color: var(--bs-list-group-action-hover-color);
+    }
+    .form-control,
+    .form-control:focus,
+    .list-group-item {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+    }
+    .link:hover{
+        --link-hover-color: hsl(0, 0%, 60%);
+        color: var(--link-hover-color);
+    }
+}
+
+.link {
+    --link-hover-color: hsl(0, 0%, 40%);
+    text-decoration: none;
+    color: var(--bs-body-color);
+    &:hover{color: var(--link-hover-color) !important;}
+}
+
+.item-card {
+    // z-index: -1;
+    &:hover,
+    &:active, 
+    &.active {
+        z-index: 0;
+    }
+}
+
+.header,
+.navbar,
+.toolbar {
+    min-height: var(--toolbar-height) !important;
+    height: var(--toolbar-height) !important;
+}
+
+.search-icon {
+    position: absolute;
+    opacity: 40%;
+}
+
+
+.browse-pane {
+    min-width: var(--browse-pane-width);
+    width: var(--browse-pane-width);
+}
+
+.editor-pane {
+    max-width: calc(100vw - var(--browse-pane-width));
+    width: calc(100vw - var(--browse-pane-width));
+}
+
+@media only screen and (max-width: 768px) {
+    .browse-pane {
+        width: 100vw;
+        border-right: none !important;
+    }
+    .editor-pane {
+        min-width: 100vw;
+        width: 100vw;
+    }
+}
+
+.item-card {
+    height: 75px;
+}
+
+.contents {
+    white-space: pre-wrap;
+    height: 100% !important;
+}
+
+body {
+    height: 100dvh;
+    width: 100dvw;
+    position: fixed;
+    overflow: hidden;
+}
+
+.body {
+    height: 100dvh !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+@font-face {
+    font-family: 'Iosevka SS07';
+    src: url(iosevka-ss07-regular.woff2) format('woff');
+}
+
+.CodeMirror {
+    height: 100% !important;
+    font-size: 14pt;
+    font-family: 'Iosevka SS07', monospace !important;
+}
+
+.CodeMirror-sizer {
+    padding-bottom: 50px !important;
+    padding-top: 20px;
+    padding-right: 10px;
+    border-right: 0 !important;
+}
+
+.CodeMirror-scroll {
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.panes,
+.editor,
+.browse-items {
+    max-height: calc(100% - var(--toolbar-height));
+    height: calc(100% - var(--toolbar-height));
+}
+
+.browse-pane,
+.editor-pane {
+    max-height: 100%;
+    height: 100%;
+}
+
+// .cm-chord {
+//     .cm-chord-tooltip {
+//         // display:none;
+//         background: #1496bb;
+//         bottom: 70%;
+//         color: #fff;
+//         left: 100px;
+//         display: block;
+//         margin-bottom: 15px;
+//         opacity: 0;
+//         padding: 10px;
+//         pointer-events: none;
+//         position: absolute;
+//         float: right;
+//         // width: 100%;
+//         transform: translateY(10px);
+//         transition: all .25s ease-out;
+//         box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+//     }
+//     // &:hover .cm-chord-tooltip {
+//     //     display: block;
+//     // }
+//     .cm-chord-tooltip:before {
+//         bottom: -20px;
+//         content: " ";
+//         display: block;
+//         height: 20px;
+//         left: 100px;
+//         position: absolute;
+//         width: 100%;
+//     }
+//     // .cm-chord-tooltip:after {
+//     //     border-left: solid transparent 10px;
+//     //     border-right: solid transparent 10px;
+//     //     border-top: solid #1496bb 10px;
+//     //     bottom: -10px;
+//     //     content: " ";
+//     //     height: 0;
+//     //     left: 50%;
+//     //     margin-left: -13px;
+//     //     position: absolute;
+//     //     width: 0;
+//     // }
+//     &:hover .cm-chord-tooltip {
+//         opacity: 1;
+//         pointer-events: auto;
+//         -webkit-transform: translateY(0px);
+//         -moz-transform: translateY(0px);
+//         -ms-transform: translateY(0px);
+//         -o-transform: translateY(0px);
+//         transform: translateY(0px);
+//       }
+// }
