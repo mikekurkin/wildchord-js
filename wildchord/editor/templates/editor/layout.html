@@ -16,16 +16,41 @@
     {% block scripts %}{% endblock %}
   </head>
   <body>
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            ...
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="body vh-100 d-flex flex-column overflow-hidden">
-      <div class="header flex-shrink-1 pt-2 px-3 border-bottom row">
-        <div class="col-auto my-0"><a href="{% url 'index' %}" class="h5 link"><h5>WildChord</h5></a></div>
+      <div class="header flex-shrink-1 px-4 border-bottom row align-items-center">
+        <div class="col-auto"><a href="{% url 'index' %}" class="h2 fw-light link">WildChord</a></div>
         {% comment %} {% if user.is_authenticated %} {% endcomment %}
         <div class="user col-auto ms-auto">
-          <span class="username">{% comment %} {{ user.username }} {% endcomment %}</span>
+          <button class="user-btn btn btn-link link text-decoration-none px-0" aria-expanded="false">
+          <span class="username">
+            {% comment %} {% if user.is_authenticated %}{{user.username}}{% else %}Log In{% endif %} {% endcomment %}
+          </span>
           <i class="fa-solid fa-angle-down"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow">
+            <li><a class="logout-link dropdown-item" href="#">Log Out</a></li>
+          </ul>
         </div>
         {% comment %} {% endif %} {% endcomment %}
       </div>
+      {% include 'editor/login_form.html' %}
       <div class="panes flex-fill d-flex flex-row overflow-hidden">
         {% block panes %}{% endblock %}
       </div>

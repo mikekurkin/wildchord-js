@@ -34,7 +34,10 @@ class Record(models.Model):
 
     def save(self, *args, **kwargs):
         # Add new line to the end of the contents
-        if self.contents == '' or self.contents[-1] != '\n':
+        if self.contents is None or self.contents == '':
+            self.contents = '\n'
+
+        if self.contents[-1] != '\n':
             self.contents += '\n'
 
         if self.id is None or self.id == '':

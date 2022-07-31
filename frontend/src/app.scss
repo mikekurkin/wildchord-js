@@ -6,7 +6,11 @@
 :root {
     --toolbar-height: 45px;
     --browse-pane-width: 320px;
-    --fdas: 0;
+    
+}
+
+.dropdown-menu {
+    --bs-dropdown-min-width: 80px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -14,6 +18,28 @@
         --bs-border-color: hsl(0, 0%, 30%);
         --bs-body-bg: hsl(0, 0%, 16%);
         --bs-body-color: hsl(0, 0%, 75%);
+    }
+
+    .modal-content {
+        --bs-modal-bg: var(--bs-body-bg);
+        --bs-modal-color: var(--bs-body-color);
+    }
+    
+    .dropdown-menu {
+        --bs-dropdown-bg: var(--bs-body-bg);
+        --bs-dropdown-color: var(--bs-body-color);
+        border-width: 1px;
+        border-color: var(--bs-border-color);
+    }
+    .dropdown-item {
+        --bs-dropdown-link-color: var(--bs-body-color);
+        --bs-dropdown-link-hover-color: hsl(0, 0%, 85%);
+        --bs-dropdown-link-hover-bg: hsl(0, 0%, 25%);
+        --bs-dropdown-link-active-bg: hsl(216, 50%, 48%);
+    }
+
+    .btn-close {
+        color: var(--bs-body-color);
     }
     
     .list-group {
@@ -34,10 +60,15 @@
         --link-hover-color: hsl(0, 0%, 60%);
         color: var(--link-hover-color);
     }
+    
 }
+
 
 .link {
     --link-hover-color: hsl(0, 0%, 40%);
+    &.btn:focus {
+        color: var(--link-hover-color);
+    }
     text-decoration: none;
     color: var(--bs-body-color);
     &:hover{color: var(--link-hover-color) !important;}
@@ -129,6 +160,10 @@ body {
     margin-right: 0 !important;
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
+}
+
+.CodeMirror-linenumber {
+    min-width: 30px;
 }
 
 .panes,
