@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, AnonymousUser
 from django.db import models
 
 from .utils import shorthash
@@ -6,7 +6,16 @@ from .utils import shorthash
 
 # Create your models here.
 class User(AbstractUser):
-    pass
+    email = None
+    first_name = None
+    last_name = None
+    is_anonymous = False
+
+
+class NullUser(AnonymousUser):
+    id = -1
+    username = "Guest"
+    is_anonymous = True
 
 
 class Record(models.Model):

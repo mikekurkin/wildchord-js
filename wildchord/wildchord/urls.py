@@ -26,7 +26,7 @@ router.register(r'records', api.RecordViewSet)
 urlpatterns = [
     path('', include('editor.urls')),
     path('api/', include(router.urls)),
-    path('api/auth/user/', api.ProfileView.as_view()),
+    path('api/auth/user/', api.ApiUserDetailsView.as_view()),
     path('api/auth/', include('dj_rest_auth.urls')),
     path('api/auth/register/', include('dj_rest_auth.registration.urls')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),

@@ -148,6 +148,11 @@ REST_FRAMEWORK = {
         'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
         'rest_framework.authentication.SessionAuthentication',  # Only for DRF Browsable API
     ],
+    'UNAUTHENTICATED_USER': 'editor.models.NullUser',
+}
+
+REST_AUTH_SERIALIZERS = {
+    'USER_DETAILS_SERIALIZER': 'editor.serializers.UserSerializer',
 }
 
 SIMPLE_JWT = {

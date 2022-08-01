@@ -97,17 +97,17 @@ let env = {
   },
 
   get profile() {
-    if (sessionStorage.getItem('profile') === null) return null
+    if (sessionStorage.getItem('profile') === null) return {is_anonymous: true}
     else return JSON.parse(sessionStorage.getItem('profile')!);
   },
   set profile(value) { sessionStorage.setItem('profile', JSON.stringify(value)); }
 }
 
 
-document.addEventListener('DOMContentLoaded', async () => {
-  try { env.profile ??= await api.getCurrentUser() }
-  catch { env.profile = { is_anonymous: true } }
-  if (!env.profile.is_anonymous) fetchRecords();
+document.addEventListener('DOMContentLoaded', loadContents);
+
+async function loadContents() {
+  if (!env.profile.is_anonymous) await fetchRecords();
   // document.querySelector('.user')?.classList.toggle('d-none', env.profile.is_anonymous);
   const username = document.querySelector('.username');
   if (username) username.innerHTML = env.profile.is_anonymous ? "Log In" : env.profile.username;
@@ -127,8 +127,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // try { env.browseRecords = JSON.parse(localStorage.getItem("browseRecords") ?? ""); }
   // catch (e) { console.log(e); }  
 
-  function fetchRecords(search?: string) {
-    api.getRecordsList(search)
+  async function fetchRecords(search?: string) {
+    await api.getRecordsList(search)
       .then(result => env.browseRecords = result.results)
       .catch(() => env.browseRecords = {});
   }
@@ -160,7 +160,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const username = usernameInput?.value ?? "";
         const password = passwordInput?.value ?? "";
         api.authLogin(username, password)
-          .then(() => location.reload())
+          .then(() => {
+            loadContents();
+            bootstrap.Modal.getInstance(document.querySelector('#login-form-modal')).hide();
+          })
           .catch(e => console.log(e))
       });
       document.querySelector('#login-form-modal')?.addEventListener('shown.bs.modal', () => {
@@ -181,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       })
     }
   }
-});
+}
 
 
 

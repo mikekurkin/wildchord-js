@@ -1,5 +1,5 @@
 import axios, { AxiosRequestHeaders, AxiosResponse } from 'axios';
-import { CurrentUser, LoginResponse, RecordListResponse, RecordResponse, RefreshResponse } from './types';
+import { LoginResponse, RecordListResponse, RecordResponse, RefreshResponse, User } from './types';
 
 export class Api {
   constructor(root = '') {
@@ -10,32 +10,31 @@ export class Api {
 
   // currentUser: User | null = { pk: 1, username: 'admin' };
   // private _currentUser: User | null = null;
-  private get currentUser() {
+  private get currentUser(): User | null {
     if (sessionStorage.getItem('profile') === null) return null
     else return JSON.parse(sessionStorage.getItem('profile')!);
   }
   
-  private set currentUser(value: CurrentUser | null) {
-    value ??= { is_anonymous: true };
-    sessionStorage.setItem('profile', JSON.stringify(value));
+  private set currentUser(value: User | null) {
+    if (value === null) sessionStorage.removeItem('profile');
+    else sessionStorage.setItem('profile', JSON.stringify(value));
   }
   
   private _authToken: string | null = null;
-  private get authToken() {
+  private get authToken(): Promise<string | null> {
     return new Promise(async (resolve, reject) => {
-      if (this.currentUser === null || this.currentUser.is_anonymous) {
-        return resolve(null);
+      if (this.currentUser?.is_anonymous ?? true) {
+        resolve(null);
       } else if (this._authToken === null) {
         try {
-          const { access, access_token_expiration } = await this.tokenRefresh()
-          this.setAuthToken(access, access_token_expiration);
-          return resolve(access);
+          const { access } = await this.tokenRefresh()
+          this.setAuthToken(access);
+          resolve(access);
         } catch {
-          this.currentUser = null;
-          return resolve(null);
+          resolve(null);
         }
       } else {
-        return resolve(this._authToken);
+        resolve(this._authToken);
       }
     })
   }
@@ -44,14 +43,14 @@ export class Api {
     return new Promise(async (resolve, reject) => {
       const token = await this.authToken;
       const h: AxiosRequestHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
-      return resolve(h);
+      resolve(h);
     })
   }
 
   private setAuthToken(token: string | null, expiration?: string | null) {
-    const expiryTime = expiration ? new Date(expiration).getTime() : Date.now()
+    const expiryTime = token ? JSON.parse(atob(token.split('.')[1])).exp * 1000 : Date.now();
     const timeDelta = expiryTime - Date.now();
-    console.log(timeDelta);
+
     if (timeDelta > 50) {
       this._authToken = token;
       setTimeout(() => {
@@ -65,9 +64,11 @@ export class Api {
       username: username,
       password: password,
     });
-
-    this.currentUser = result.data.user;
-    return result.data as LoginResponse;
+    
+    const data = result.data as LoginResponse;
+    this.setAuthToken(data.access_token);
+    this.currentUser = data.user;
+    return data;
   }
 
   private async tokenRefresh() {
@@ -78,8 +79,8 @@ export class Api {
   async authLogout() {
     const result = await axios.post('/auth/logout/', { headers: await this.headers });
 
-    this.currentUser = null;
     this.setAuthToken(null);
+    this.currentUser = null;
 
     return result.data as LoginResponse;
   }
@@ -87,7 +88,7 @@ export class Api {
   async getCurrentUser() {
     const result = await axios.get('/auth/user/', { headers: await this.headers });
     
-    return result.data as CurrentUser;
+    return result.data as User;
   }
 
   async getRecordsList(search?: string) {
