@@ -2,14 +2,6 @@
 {% load static %}
 
 {% block scripts %}
-{% comment %} <link rel="stylesheet" href="{% static 'codemirror/lib/codemirror.css' %}">
-<link rel="stylesheet" href="{% static 'codemirror/theme/material-darker.css' %}">
-<link rel="stylesheet" href="{% static 'codemirror/theme/neat.css' %}"> {% endcomment %}
-{% comment %} <script src="{% static 'codemirror/lib/codemirror.js' %}"></script> {% endcomment %}
-{% comment %} <script src="{% static 'codemirror/mode/markdown/markdown.js' %}"></script> {% endcomment %}
-{% comment %} <script src="{% static 'codemirror/addon/mode/simple.js' %}"></script>
-<script src="{% static 'chord-md.js' %}" type="module"></script>
-<script src="{% static 'editor.js' %}" type="module"></script> {% endcomment %}
 {% include 'editor/item_card_template.html' %}
 {% endblock %}
 
@@ -50,7 +42,7 @@
     </ul>
   </div>
 </div>
-<div class="editor-pane d-md-flex flex-column d-none flex-fill">
+<div class="editor-pane d-md-flex flex-column flex-fill d-none">
   <div class="toolbar border-bottom">
     <div class="row gx-0 align-items-center">
       <div class="col-auto d-inline-block d-md-none"><button class="back-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-solid fa-angle-left"></span></button></div>

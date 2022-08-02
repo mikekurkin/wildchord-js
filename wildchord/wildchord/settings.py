@@ -146,7 +146,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100,
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # Only for DRF Browsable API
+        # 'rest_framework.authentication.SessionAuthentication',  # Only for DRF Browsable API
     ],
     'UNAUTHENTICATED_USER': 'editor.models.NullUser',
 }

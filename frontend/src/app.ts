@@ -1,30 +1,21 @@
-import { EditorFromTextArea } from 'codemirror';
 import { Api } from './api';
-import { RecordDict, RecordResponse } from './types';
+import { Record } from './record';
+import { RecordResponse } from './types';
 
 import { AxiosError } from 'axios';
-import CodeMirror from 'codemirror';
-import '../node_modules/codemirror/addon/mode/simple.js';
-import './chord-md.js';
+import { Modal } from 'bootstrap';
+import CodeMirror, { EditorFromTextArea } from 'codemirror';
 
-const api = new Api('/api');
+import 'bootstrap';
+import 'codemirror/addon/mode/simple';
+import './chord-md';
+
+export const api = new Api('/api');
+
+document.addEventListener('DOMContentLoaded', loadContents);
 
 window.addEventListener('popstate', e => {
-  // TODO: Fix somehow. Same as in set activeRecordId(value), but no push state
-  env._activeRecordId = e.state.r; 
-  const activeElements = document.querySelectorAll(`[data-id].active, [data-id="${env._activeRecordId}"]`) as NodeListOf<HTMLElement>;
-  activeElements.forEach(card => {
-    card.classList.toggle('active', card.dataset.id === env._activeRecordId)
-  });
-  if (env._activeRecordId !== null) {
-    loadRecord(env._activeRecordId);
-  } else {
-    if (cm !== undefined && cm !== null) {
-      cm.toTextArea();
-      const saveBtn: HTMLElement | null = document.querySelector('.save-btn')
-      if (saveBtn !== null) saveBtn.onclick = null;
-    }
-  }
+  env.setActiveRecordId(e.state.r, false);
 });
 
 window.addEventListener('unhandledrejection', function (e) {
@@ -32,12 +23,24 @@ window.addEventListener('unhandledrejection', function (e) {
     e.preventDefault();
     console.warn(e.reason.message);
     console.log(e.reason.response);
-  } else {console.log(e)}
-}) 
+  } else {
+    console.log(e);
+  }
+});
 
-let cm: EditorFromTextArea | null;
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+  if (el.cm) {
+    el.cm.setOption('theme', env.darkMode ? 'material-darker' : 'neat');
+    el.cm.save();
+  }
+});
 
-let env = {
+window.addEventListener('storage', function (e) {
+  if (e.storageArea === window.sessionStorage && e.key === 'profile') handleUserChange();
+  console.log(e);
+});
+
+export const env = {
   forceDark: false,
   forceLight: false,
   get systemDarkMode() {
@@ -46,294 +49,273 @@ let env = {
   get darkMode() {
     return !this.forceLight && (this.systemDarkMode || this.forceDark);
   },
-  updateEditorTheme() {
-    if (cm !== undefined && cm !== null) {
-      cm.setOption('theme', this.darkMode ? 'material-darker' : 'neat');
-      cm.save();
-    }
-  },
 
   _activeRecordId: null as string | null,
-  get activeRecordId() { return this._activeRecordId; },
-  set activeRecordId(value) {
-    saveCurrentRecord();
-    if (value !== this._activeRecordId) {
-      // console.log(value);
-      history.pushState({ r: value }, '', (value === null) ? '/' : `?r=${value}`);
-      this._activeRecordId = value; 
-      const activeELements = document.querySelectorAll(`[data-id].active, [data-id="${this._activeRecordId}"]`) as NodeListOf<HTMLElement>
-      activeELements.forEach(card => {
-        card.classList.toggle('active', card.dataset.id === this._activeRecordId)
-      });
-      if (this._activeRecordId !== null) {
-        loadRecord(this._activeRecordId);
-      } else {
-        if (cm !== undefined && cm !== null) {
-          cm.toTextArea();
-          const saveBtn = document.querySelector('.save-btn') as HTMLElement | null
-          if (saveBtn !== null) saveBtn.onclick = null;
-        }
-      } 
-    }
+  get activeRecordId() {
+    return this._activeRecordId;
+  },
+  set activeRecordId(value: string | null) {
+    this.setActiveRecordId(value);
   },
 
-  _browseRecords: {} as RecordDict,
-  get browseRecords(): RecordDict {
-    return this._browseRecords;
-  },
-  set browseRecords(records: [RecordResponse] | RecordDict) {
-    if (Array.isArray(records)) {
-      const newRecords: RecordDict = {};
-      records.forEach(record => newRecords[record.id] = record)
-      this._browseRecords = newRecords;
-    } else if (typeof records === 'object') {
-      this._browseRecords = records;
+  setActiveRecordId(value: string | null, pushState: boolean = true) {
+    saveCurrentRecord();
+    if (value !== this._activeRecordId) {
+      this._activeRecordId = value;
+      if (pushState) history.pushState({ r: value }, '', value === null ? '/' : `?r=${value}`);
+      if (this._activeRecordId !== null) fetchRecordDetails(this._activeRecordId);
     }
-    // localStorage.setItem("browseRecords", JSON.stringify(this._browseRecords));
-    showEnvBrowseCards();
-    
-    const activeCard = document.querySelector('[data-id].active');
-    if (activeCard !== null) activeCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    handleRecordChange();
+  },
+
+  get activeRecord() {
+    return this.activeRecordId ? this.fetchedRecords[this.activeRecordId] : null;
+  },
+
+  _fetchedRecords: {} as { [id: string]: Record },
+  get fetchedRecords() {
+    return this._fetchedRecords;
+  },
+  set fetchedRecords(records) {
+    this._fetchedRecords = records;
+    handleCardsUpdate();
+  },
+
+  setFetchedRecordsFromResponseArray(array: Array<RecordResponse>) {
+    const obj = {} as { [id: string]: Record };
+    array.forEach(response => (obj[response.id] = new Record(response)));
+    this._fetchedRecords = obj;
+    handleCardsUpdate();
   },
 
   get profile() {
-    if (sessionStorage.getItem('profile') === null) return {is_anonymous: true}
+    if (sessionStorage.getItem('profile') === null) return { is_anonymous: true };
     else return JSON.parse(sessionStorage.getItem('profile')!);
   },
-  set profile(value) { sessionStorage.setItem('profile', JSON.stringify(value)); }
+  set profile(value) {
+    sessionStorage.setItem('profile', JSON.stringify(value));
+  },
+};
+
+export const el = {
+  cm: null as EditorFromTextArea | null,
+  get root() {
+    return document.querySelector<HTMLElement>(':root');
+  },
+  get username() {
+    return document.querySelector<HTMLParagraphElement>('.username');
+  },
+  get browsePane() {
+    return document.querySelector<HTMLDivElement>('.browse-pane');
+  },
+  get searchbar() {
+    return document.querySelector<HTMLInputElement>('.searchbar input');
+  },
+  get browseItems() {
+    return document.querySelector<HTMLUListElement>('.browse-items > .list-group');
+  },
+  get editorPane() {
+    return document.querySelector<HTMLDivElement>('.editor-pane');
+  },
+  get editorTextArea() {
+    return document.querySelector<HTMLTextAreaElement>('.editor-pane .contents');
+  },
+  get userBtn() {
+    return document.querySelector<HTMLButtonElement>('.user-btn');
+  },
+  get logoutLink() {
+    return document.querySelector<HTMLAnchorElement>('.logout-link');
+  },
+  get loginModal() {
+    return document.querySelector<HTMLDivElement>('#login-form-modal');
+  },
+  get loginForm() {
+    return document.querySelector<HTMLFormElement>('.login-form');
+  },
+  get usernameInput() {
+    return document.querySelector<HTMLInputElement>('.login-form #username');
+  },
+  get passwordInput() {
+    return document.querySelector<HTMLInputElement>('.login-form #password');
+  },
+  get newBtns() {
+    return document.querySelectorAll<HTMLButtonElement>('.new-btn');
+  },
+  get saveBtn() {
+    return document.querySelector<HTMLButtonElement>('.save-btn');
+  },
+  get backBtn() {
+    return document.querySelector<HTMLButtonElement>('.back-btn');
+  },
+  get delBtn() {
+    return document.querySelector<HTMLButtonElement>('.del-btn');
+  },
+  get activeRecordCard() {
+    return document.querySelector<HTMLAnchorElement>('[data-id].active');
+  },
+  get activeRecordCards() {
+    return document.querySelectorAll<HTMLAnchorElement>(`[data-id].active, [data-id="${env.activeRecordId}"]`);
+  },
+};
+
+function handleUserChange() {
+  if (el.username) el.username.innerHTML = env.profile.is_anonymous ? 'Log In' : env.profile.username;
+  el.browsePane?.classList.toggle('d-md-flex', !env.profile.is_anonymous);
+  el.browsePane?.classList.toggle('d-none', env.profile.is_anonymous);
+  el.browsePane?.classList.toggle('d-md-none', env.profile.is_anonymous);
+  el.root?.style.setProperty('--browse-pane-width', env.profile.is_anonymous ? '0' : '320px');
+  [el.saveBtn, el.delBtn, el.backBtn, ...el.newBtns, el.browsePane].forEach(btn => {
+    btn?.toggleAttribute('hidden', env.profile.is_anonymous);
+  });
+
+  if (env.activeRecordId) fetchRecordDetails(env.activeRecordId).catch(() => (env.activeRecordId = null));
+
+  if (env.profile.is_anonymous) {
+    if (el.userBtn) {
+      el.userBtn.dataset.bsToggle = 'modal';
+      el.userBtn.dataset.bsTarget = '#login-form-modal';
+    }
+
+    el.loginForm?.addEventListener('submit', e => {
+      e.preventDefault();
+      const username = el.usernameInput?.value ?? '';
+      const password = el.passwordInput?.value ?? '';
+      api.authLogin(username, password).then(loadContents);
+    });
+    el.loginModal?.addEventListener('shown.bs.modal', () => {
+      el.usernameInput?.focus();
+    });
+  } else {
+    el.newBtns.forEach(e => e.addEventListener('click', createNewRecord));
+    el.delBtn?.addEventListener('click', deleteCurrentRecord);
+    if (el.userBtn) {
+      el.userBtn.dataset.bsToggle = 'dropdown';
+      el.logoutLink?.addEventListener('click', e => {
+        e.preventDefault();
+        saveCurrentRecord();
+        api.authLogout().then(loadContents);
+      });
+    }
+  }
 }
 
+function handleRecordChange() {
+  el.activeRecordCards.forEach(card => {
+    card.classList.toggle('active', card.dataset.id === env.activeRecordId);
+  });
+  if (env.activeRecordId === null && el.cm) {
+    el.cm.toTextArea();
+  }
 
-document.addEventListener('DOMContentLoaded', loadContents);
+  const recordResponse = env.activeRecordId === null ? null : env.activeRecord?.response ?? null;
+  el.browsePane?.classList.toggle('d-none', env.activeRecordId !== null);
+  el.editorPane?.classList.toggle('d-none', env.activeRecordId === null);
+  el.saveBtn?.toggleAttribute('hidden', env.profile.is_anonymous || !recordResponse?.can_edit);
+  el.delBtn?.toggleAttribute('hidden', env.profile.is_anonymous || !recordResponse?.can_edit);
+
+  if (!env.profile.is_anonymous && recordResponse?.can_edit) {
+    (CodeMirror.commands as any).save = saveCurrentRecord;
+    if (el.saveBtn)
+      el.saveBtn.onclick = function (e) {
+        e.preventDefault();
+        saveCurrentRecord();
+      };
+  } else {
+    if (el.saveBtn) el.saveBtn.onclick = null;
+    (CodeMirror.commands as any).save = null;
+  }
+}
 
 async function loadContents() {
-  if (!env.profile.is_anonymous) await fetchRecords();
-  // document.querySelector('.user')?.classList.toggle('d-none', env.profile.is_anonymous);
-  const username = document.querySelector('.username');
-  if (username) username.innerHTML = env.profile.is_anonymous ? "Log In" : env.profile.username;
-  document.querySelector('.browse-pane')?.classList.toggle('d-md-flex', !env.profile.is_anonymous); 
-  document.querySelector('.browse-pane')?.classList.toggle('d-none',  env.profile.is_anonymous); 
-  const rootEl = document.querySelector(':root') as HTMLElement | null;
-  rootEl?.style.setProperty('--browse-pane-width', env.profile.is_anonymous ? '0' : '320px');
-  
-  const urlParams = new URLSearchParams(window.location.search);  
+  Modal.getInstance(el.loginModal as Element)?.hide();
+  el.loginForm?.reset();
+
+  const urlParams = new URLSearchParams(window.location.search);
   let r = null;
   if (urlParams.has('r')) r = urlParams.get('r');
 
-  document.querySelector('.browse-pane')?.classList.toggle('d-none', r !== null); 
-
+  await fetchRecordsList();
   env.activeRecordId = r;
-  
-  // try { env.browseRecords = JSON.parse(localStorage.getItem("browseRecords") ?? ""); }
-  // catch (e) { console.log(e); }  
 
-  async function fetchRecords(search?: string) {
-    await api.getRecordsList(search)
-      .then(result => env.browseRecords = result.results)
-      .catch(() => env.browseRecords = {});
-  }
+  handleUserChange();
 
-  const searchbar: HTMLInputElement | null = document.querySelector('.searchbar input')
-  searchbar?.addEventListener('keydown', (function (e) {
+  el.searchbar?.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       this.value = '';
-      fetchRecords();
+      fetchRecordsList();
     }
-  }))
-  searchbar?.addEventListener('input', (function () {
-    fetchRecords(this.value)
-  }))
-  
-  const userBtn: HTMLButtonElement | null = document.querySelector('.user-btn');
-
-  if (env.profile.is_anonymous) {
-    if (userBtn) {
-      userBtn.dataset.bsToggle = "modal";
-      userBtn.dataset.bsTarget = "#login-form-modal";
-    }
-    const loginForm = document.querySelector('.login-form')
-    if (loginForm) {
-      const usernameInput: HTMLInputElement | null = loginForm.querySelector('#username');
-      const passwordInput: HTMLInputElement | null = loginForm.querySelector('#password');
-      loginForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const username = usernameInput?.value ?? "";
-        const password = passwordInput?.value ?? "";
-        api.authLogin(username, password)
-          .then(() => {
-            loadContents();
-            bootstrap.Modal.getInstance(document.querySelector('#login-form-modal')).hide();
-          })
-          .catch(e => console.log(e))
-      });
-      document.querySelector('#login-form-modal')?.addEventListener('shown.bs.modal', () => {
-        usernameInput?.focus();
-      })
-    }
-  } else {
-    document.querySelectorAll('.new-btn').forEach(e => e.addEventListener('click', createNewRecord));
-    document.querySelectorAll('.del-btn').forEach(e => e.addEventListener('click', deleteCurrentRecord));
-    if (userBtn) {
-      userBtn.dataset.bsToggle = "dropdown";
-      const logoutLink = document.querySelector('.logout-link');
-      logoutLink?.addEventListener('click', e => {
-        e.preventDefault();
-        api.authLogout()
-          .then(() => location.reload())
-          .catch(e => console.log(e))
-      })
-    }
+  });
+  el.searchbar?.addEventListener('input', function () {
+    fetchRecordsList(this.value);
+  });
+  if (el.backBtn) {
+    el.backBtn.onclick = function (e) {
+      e.preventDefault();
+      el.browsePane?.classList.remove('d-none');
+      el.editorPane?.classList.add('d-none');
+    };
   }
 }
 
+async function fetchRecordsList(search?: string) {
+  if (env.profile.is_anonymous) {
+    env.fetchedRecords = {};
+    return;
+  }
+  try {
+    const result = await api.getRecordsList(search);
+    env.setFetchedRecordsFromResponseArray(result.results);
+  } catch {
+    env.fetchedRecords = {};
+  }
+}
 
+async function fetchRecordDetails(id: string) {
+  try {
+    let record = env.fetchedRecords[id];
+    if (!record) {
+      record = new Record(await api.getRecordDetails(id));
+      env.fetchedRecords = { ...env.fetchedRecords, [record.id]: record };
+    }
+    record.open();
+  } catch {
+    env.activeRecordId = null;
+  }
+}
 
-function showEnvBrowseCards() {
-  let cards = new Array();
-  let result = Object.values(env.browseRecords).sort(
-    (a, b) => new Date(b.update_timestamp).getTime() - new Date(a.update_timestamp).getTime()
+function handleCardsUpdate() {
+  let cards = new Array<HTMLAnchorElement>();
+  let result = Object.values(env.fetchedRecords).sort(
+    (a, b) => new Date(b.response.update_timestamp).getTime() - new Date(a.response.update_timestamp).getTime()
   );
   result.forEach(record => {
-    let card = recordCard(record);
-    cards.push(card);
+    cards.push(record.card);
   });
-  document.querySelector('.browse-items > .list-group')?.replaceChildren(...cards);
+  el.browseItems?.replaceChildren(...cards);
 }
 
-function loadRecord(recordId: string) {
-  api.getRecordDetails(recordId)
-    .then(result => {
-      showRecord(result);
-      (CodeMirror.commands as any).save = saveCurrentRecord;
-    })
-}
-
-function recordCard(record: RecordResponse) {
-  const cardTemplate: HTMLTemplateElement | null = document.querySelector('template#item-card-template');
-  const recordCard = cardTemplate?.content.firstElementChild?.cloneNode(true) as HTMLElement | null;
-  const titleLine = recordCard?.querySelector('.title-line');
-  const secondLine = recordCard?.querySelector('.second-line');
-  const timeStamp = recordCard?.querySelector('.timestamp')
-  if (titleLine) titleLine.innerHTML = record.title_line;
-  if (secondLine) secondLine.innerHTML = record.second_line;
-  if (timeStamp) timeStamp.innerHTML = new Date(record.update_timestamp)
-    .toLocaleString(undefined, {month: "short", day: "numeric", 
-                                hour: "numeric", minute: "numeric"});
-  if (recordCard) {
-    recordCard.setAttribute('href', `?r=${record.id}`);
-    recordCard.classList.toggle('active', record.id === env.activeRecordId);
-    recordCard.dataset.id = record.id;
-    recordCard.onclick = (function (this: typeof recordCard, e: MouseEvent) {
-      if (e.altKey || e.shiftKey || e.ctrlKey || e.metaKey || e.button !== 0) return;
-      e.preventDefault();
-      env.activeRecordId = this.dataset.id ?? null;
-    } as EventListener)
-  } 
-  return recordCard;
-}
-
-function showRecord(result: RecordResponse) {
-  
-  const saveBtn: HTMLButtonElement | null = document.querySelector('.save-btn');
-  const backBtn: HTMLButtonElement | null = document.querySelector('.back-btn');
-  const delBtn: HTMLButtonElement | null = document.querySelector('.del-btn');
-  const browsePane = document.querySelector('.browse-pane');
-  const editorPane = document.querySelector('.editor-pane');
-  browsePane?.classList.add('d-none');
-  editorPane?.classList.remove('d-none');
-  const textArea: HTMLTextAreaElement | null = editorPane?.querySelector('.contents') ?? null;
-  if (cm) {
-    cm.toTextArea();
-    if (saveBtn) saveBtn.onclick = null;
-  }
-  if (textArea) {
-    textArea.value = result.contents ?? "";
-    cm = CodeMirror.fromTextArea(textArea, {
-      lineNumbers: true,
-      autofocus: true,
-      viewportMargin: Infinity,
-      scrollbarStyle: 'native',
-      mode: 'chords',
-      theme: env.darkMode ? 'material-darker' : 'neat',
-      readOnly: result.can_edit ? false : 'nocursor',
-    });
-  
-    saveBtn?.toggleAttribute('hidden', env.profile.is_anonymous || !result.can_edit);
-    delBtn?.toggleAttribute('hidden', env.profile.is_anonymous || !result.can_edit);
-    if (result.can_edit) {
-      if (saveBtn) saveBtn.onclick = function (e) {
-        e.preventDefault();
-        saveCurrentRecord();
-      }
-    } else {
-      if (saveBtn) saveBtn.onclick = null;
-    }
-  }
-  if (backBtn) backBtn.onclick = function (e) {
-    e.preventDefault();
-    browsePane?.classList.remove('d-none');
-    editorPane?.classList.add('d-none');
-  }
-  // createTooltips();
-  
-}
-
-// function createTooltips() {
-//   let chords = document.querySelectorAll(".cm-chord");
-//   chords.forEach(async chord => {
-//     // const response = await fetch(`https://api.uberchord.com/v1/embed/chords?nameLike=${chord.innerHTML}`);
-//     // const result = await response.text();
-//     // const embedHtml = document.createElement('div');
-//     // embedHtml.innerHTML = result;
-//     // console.log(embedHtml);
-//     // chord.title = `${embedHtml.innerHTML}`;
-//     const hd = document.createElement('div');
-//     hd.innerHTML = `<div data-autosize="1" data-no-icon="1" class="uberchord-chords" data-search-by="nameLike" data-search-query="${chord.innerHTML}"></div>`;
-//     hd.setAttribute('hidden', '');
-//     chord.appendChild(hd);
-//     chord.dataset.bsHtml = "true";
-//     chord.dataset.bsTitle = ``;
-//     chord.dataset.bsToggle = "tooltip";
-//     new bootstrap.Tooltip(chord);
-//   });
-// }
-
-function createNewRecord() {
+async function createNewRecord() {
   saveCurrentRecord();
-  api.createRecord()
-    .then(result => {
-      env.browseRecords = { ...env.browseRecords, [result.id]: result }
-      env.activeRecordId = result.id;
-    });
+  const newRecord = await Record.create();
+  env.fetchedRecords = { ...env.fetchedRecords, [newRecord.id]: newRecord };
+  env.activeRecordId = newRecord.id;
 }
 
-function deleteCurrentRecord() {
-  const id = env.activeRecordId
-  if (id) api.deleteRecord(id)
-    .then(() => {
-      let newBrowseRecords = env.browseRecords;
-      if (id && newBrowseRecords[id]) delete newBrowseRecords[id];
-      env.browseRecords = newBrowseRecords;
-      env.activeRecordId = null;
-    });
+async function deleteCurrentRecord() {
+  const id = env.activeRecordId;
+  if (!id) return;
+
+  const record = env.fetchedRecords[id];
+  await record.delete();
+  const { [id]: string, ...rest } = env.fetchedRecords;
+  env.fetchedRecords = rest;
+  env.activeRecordId = null;
 }
 
-function saveCurrentRecord() {
-  const textArea: HTMLInputElement | null = document.querySelector('.contents');
-  if (cm) {
-    const oldContents = textArea?.value;
-    cm.save();
-    const newContents = textArea?.value;
-    const id = env.activeRecordId;
-    if (oldContents !== newContents && id !== null && newContents !== undefined) {
-      api.editRecord(id, newContents)
-        .then(result => env.browseRecords = { ...env.browseRecords, [result.id]: result });
-    }
-  }
-}
+async function saveCurrentRecord() {
+  const id = env.activeRecordId;
+  if (!id || !env.fetchedRecords[id]) return;
 
-window
-  .matchMedia("(prefers-color-scheme: dark)")
-  .addEventListener("change", function () {
-    env.updateEditorTheme();
-  });
+  const result = await env.fetchedRecords[id].save();
+  env.fetchedRecords = { ...env.fetchedRecords, [result.id]: result };
+}
