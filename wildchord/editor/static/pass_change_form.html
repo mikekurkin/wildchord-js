@@ -1,0 +1,29 @@
+<div class="modal fade" id="pass-form-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Change Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form class="pass-form">
+        <div class="modal-body">
+          <div class="form-floating mb-3">
+            <input type="password" class="form-control" id="old-password" placeholder="Old Password" autocomplete="current-password" required />
+            <label for="password">Old Password</label>
+          </div>
+          <div class="form-floating mb-3">
+            <input type="password" class="form-control" id="new-password" placeholder="New Password" autocomplete="new-password" required />
+            <label for="newPassword">New Password</label>
+          </div>
+          <div class="form-floating mb-3">
+            <input type="password" class="form-control" id="confirmation" placeholder="Confirmation" autocomplete="new-password" required />
+            <label for="confirmation">Confirmation</label>
+          </div>
+        </div>
+        <div class="modal-footer text-end">
+          <button type="submit" class="change-pass-btn btn-lg btn-secondary">Change</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

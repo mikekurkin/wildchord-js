@@ -1,11 +1,15 @@
-import axios, { AxiosRequestHeaders, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestHeaders, AxiosResponse } from 'axios';
 import { LoginResponse, RecordListResponse, RecordResponse, RefreshResponse, User } from './types';
 
 export class Api {
+  ax: AxiosInstance;
+
   constructor(root = '') {
-    axios.defaults.xsrfCookieName = 'csrftoken';
-    axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-    axios.defaults.baseURL = root;
+    this.ax = axios.create({
+      xsrfHeaderName: 'X-CSRFToken',
+      xsrfCookieName: 'csrftoken',
+      baseURL: root,
+    });
   }
 
   private get currentUser(): User | null {
@@ -67,77 +71,81 @@ export class Api {
     }
   }
 
+  async authRegister(username: string, password: string, confirmation: string) {
+    const {
+      data: { access_token, user },
+    } = (await this.ax.post('/auth/register/', {
+      username: username,
+      password1: password,
+      password2: confirmation,
+    })) as AxiosResponse<LoginResponse>;
+
+    this.setAuthToken(access_token);
+    this.currentUser = user;
+  }
+
   async authLogin(username: string, password: string) {
-    const result = await axios.post('/auth/login/', {
+    const {
+      data: { access_token, user },
+    } = (await this.ax.post('/auth/login/', {
       username: username,
       password: password,
-    });
+    })) as AxiosResponse<LoginResponse>;
 
-    const data = result.data as LoginResponse;
-    this.setAuthToken(data.access_token);
-    this.currentUser = data.user;
-    return data;
+    this.setAuthToken(access_token);
+    this.currentUser = user;
   }
 
   private async tokenRefresh() {
-    const result = await axios.post('/auth/token/refresh/');
-    return result.data as RefreshResponse;
+    const { data } = await this.ax.post('/auth/token/refresh/');
+    return data as RefreshResponse;
   }
 
   async authLogout() {
-    const result = await axios.post('/auth/logout/', { headers: await this.headers });
+    const { data } = await this.ax.post('/auth/logout/', { headers: await this.headers });
 
     this.setAuthToken(null);
     this.currentUser = null;
 
-    return result.data as LoginResponse;
+    return data as LoginResponse;
+  }
+
+  async authChangePass(oldPassword: string, newPassword: string, confirmation: string) {
+    await this.ax.post('/auth/password/change/', {
+      old_password: oldPassword,
+      new_password1: newPassword,
+      new_password2: confirmation,
+    });
   }
 
   async getCurrentUser() {
-    const result = await axios.get('/auth/user/', { headers: await this.headers });
-
-    return result.data as User;
+    const { data } = await this.ax.get('/auth/user/', { headers: await this.headers });
+    return data as User;
   }
 
   async getRecordsList(search?: string) {
     const searchString = search && search !== '' ? '?search=' + search : '';
-    const result = await axios.get(`/records${searchString}`, { headers: await this.headers });
-
-    return result.data as RecordListResponse;
+    const { data } = await this.ax.get(`/records${searchString}`, { headers: await this.headers });
+    return data as RecordListResponse;
   }
 
   async getRecordDetails(id: string) {
-    const result = await axios.get(`/records/${id}`, { headers: await this.headers });
-
-    return result.data as RecordResponse;
+    const { data } = await this.ax.get(`/records/${id}`, { headers: await this.headers });
+    return data as RecordResponse;
   }
 
   async createRecord(contents?: string) {
-    const result = await axios.post(
-      '/records',
-      {
-        contents: contents ?? '',
-      },
-      { headers: await this.headers }
-    );
-
-    return result.data as RecordResponse;
+    const { data } = await this.ax.post('/records', { contents: contents ?? '' }, { headers: await this.headers });
+    return data as RecordResponse;
   }
 
   async deleteRecord(id: string) {
-    const result = await axios.delete(`/records/${id}`, { headers: await this.headers });
-    return result.data as AxiosResponse;
+    const { data } = await this.ax.delete(`/records/${id}`, { headers: await this.headers });
+    return data as AxiosResponse;
   }
 
   async editRecord(id: string, newContents: string) {
-    const result = await axios.put(
-      `/records/${id}`,
-      {
-        contents: newContents,
-      },
-      { headers: await this.headers }
-    );
-
-    return result.data as RecordResponse;
+    const { data } = await this.ax.put(`/records/${id}`, { contents: newContents }, { headers: await this.headers });
+    return data as RecordResponse;
   }
 }

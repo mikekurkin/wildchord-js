@@ -1,8 +1,8 @@
 import { Api } from './api';
 import { Record } from './record';
-import { RecordResponse } from './types';
+import { NullUser, RecordResponse, User } from './types';
 
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Modal } from 'bootstrap';
 import CodeMirror, { EditorFromTextArea } from 'codemirror';
 
@@ -94,8 +94,8 @@ export const env = {
     handleCardsUpdate();
   },
 
-  get profile() {
-    if (localStorage.getItem('profile') === null) return { is_anonymous: true };
+  get profile(): User {
+    if (localStorage.getItem('profile') === null) return new NullUser();
     else return JSON.parse(localStorage.getItem('profile')!);
   },
 };
@@ -126,6 +126,9 @@ export const el = {
   get editorTextArea() {
     return document.querySelector<HTMLTextAreaElement>('.editor-pane .contents');
   },
+  get userMenu() {
+    return document.querySelector<HTMLDivElement>('.user-menu');
+  },
   get userBtn() {
     return document.querySelector<HTMLButtonElement>('.user-btn');
   },
@@ -141,17 +144,35 @@ export const el = {
   get loginLink() {
     return document.querySelector<HTMLAnchorElement>('.login-link');
   },
+  get regLink() {
+    return document.querySelector<HTMLAnchorElement>('.register-link');
+  },
+  get passChangeLink() {
+    return document.querySelector<HTMLAnchorElement>('.pass-change-link');
+  },
   get loginModal() {
     return document.querySelector<HTMLDivElement>('#login-form-modal');
   },
   get loginForm() {
     return document.querySelector<HTMLFormElement>('.login-form');
   },
+  get regForm() {
+    return document.querySelector<HTMLFormElement>('.register-form');
+  },
   get usernameInput() {
-    return document.querySelector<HTMLInputElement>('.login-form #username');
+    return document.querySelector<HTMLInputElement>('input#username');
   },
   get passwordInput() {
-    return document.querySelector<HTMLInputElement>('.login-form #password');
+    return document.querySelector<HTMLInputElement>('input#password');
+  },
+  get oldPasswordInput() {
+    return document.querySelector<HTMLInputElement>('input#old-password');
+  },
+  get newPasswordInput() {
+    return document.querySelector<HTMLInputElement>('input#new-password');
+  },
+  get confirmationInput() {
+    return document.querySelector<HTMLInputElement>('input#confirmation');
   },
   get newBtns() {
     return document.querySelectorAll<HTMLButtonElement>('.new-btn');
@@ -161,6 +182,9 @@ export const el = {
   },
   get backBtn() {
     return document.querySelector<HTMLButtonElement>('.back-btn');
+  },
+  get shareBtn() {
+    return document.querySelector<HTMLButtonElement>('.share-btn');
   },
   get delBtn() {
     return document.querySelector<HTMLButtonElement>('.del-btn');
@@ -179,14 +203,17 @@ export const el = {
   },
 };
 
-function handleUserChange() {
-  if (el.username) el.username.innerHTML = env.profile.username ?? 'Guest';
+async function handleUserChange() {
+  if (el.username) el.username.innerHTML = env.profile.username;
   el.browsePane?.classList.toggle('d-md-flex', !env.profile.is_anonymous);
   el.browsePane?.classList.toggle('d-none', env.profile.is_anonymous);
   el.browsePane?.classList.toggle('d-md-none', env.profile.is_anonymous);
   el.root?.style.setProperty('--browse-pane-width', env.profile.is_anonymous ? '0' : '320px');
-  [el.saveBtn, el.delBtn, el.backBtn, ...el.newBtns, el.browsePane].forEach(btn => {
-    btn?.toggleAttribute('hidden', env.profile.is_anonymous);
+  [el.saveBtn, el.delBtn, el.backBtn, el.shareBtn, ...el.newBtns, el.browsePane].forEach(e => {
+    e?.toggleAttribute('hidden', env.profile.is_anonymous);
+  });
+  [el.saveBtn, el.delBtn, el.shareBtn].forEach(e => {
+    e?.toggleAttribute('hidden', !env.activeRecord?.response.can_edit);
   });
 
   if (env.activeRecordId) fetchRecordDetails(env.activeRecordId).catch(() => (env.activeRecordId = null));
@@ -205,23 +232,12 @@ function handleUserChange() {
   }
 
   if (env.profile.is_anonymous) {
-    if (el.loginLink) {
-      el.loginLink.dataset.bsToggle = 'modal';
-      el.loginLink.dataset.bsTarget = '#login-form-modal';
-    }
-
-    el.loginForm?.addEventListener('submit', e => {
-      e.preventDefault();
-      const username = el.usernameInput?.value ?? '';
-      const password = el.passwordInput?.value ?? '';
-      api.authLogin(username, password).then(loadContents);
-    });
-    el.loginModal?.addEventListener('shown.bs.modal', () => {
-      el.usernameInput?.focus();
-    });
+    makeModalForm(el.loginLink, 'login_form', handleLogin);
+    makeModalForm(el.regLink, 'register_form', handleRegister);
   } else {
     el.newBtns.forEach(e => e.addEventListener('click', createNewRecord));
     el.delBtn?.addEventListener('click', deleteCurrentRecord);
+    makeModalForm(el.passChangeLink, 'pass_change_form', handlePassChange);
 
     el.logoutLink?.addEventListener('click', e => {
       e.preventDefault();
@@ -242,8 +258,10 @@ function handleRecordChange() {
   const recordResponse = env.activeRecordId === null ? null : env.activeRecord?.response ?? null;
   el.browsePane?.classList.toggle('d-none', env.activeRecordId !== null);
   el.editorPane?.classList.toggle('d-none', env.activeRecordId === null);
-  el.saveBtn?.toggleAttribute('hidden', env.profile.is_anonymous || !recordResponse?.can_edit);
-  el.delBtn?.toggleAttribute('hidden', env.profile.is_anonymous || !recordResponse?.can_edit);
+
+  [el.saveBtn, el.delBtn, el.shareBtn].forEach(e => {
+    e?.toggleAttribute('hidden', !env.activeRecord?.response.can_edit);
+  });
 
   if (!env.profile.is_anonymous && recordResponse?.can_edit) {
     (CodeMirror.commands as any).save = saveCurrentRecord;
@@ -271,21 +289,15 @@ function handleThemeChange() {
 
 async function loadContents() {
   handleThemeChange();
-  Modal.getInstance(el.loginModal as Element)?.hide();
-  el.loginForm?.reset();
 
-  // const urlParams = new URLSearchParams(window.location.search);
   let r = null;
-  // if (urlParams.has('r')) r = urlParams.get('r');
 
   const urlPath = window.location.pathname.replace(/\/+$/, '').split('/');
   if (urlPath[urlPath.length - 2] === 'r') r = urlPath[urlPath.length - 1];
 
+  handleUserChange();
   await fetchRecordsList();
   env.activeRecordId = r;
-
-  handleUserChange();
-
   el.searchbar?.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       this.value = '';
@@ -302,6 +314,28 @@ async function loadContents() {
       el.editorPane?.classList.add('d-none');
     };
   }
+}
+
+async function handleLogin() {
+  const username = el.usernameInput?.value ?? '';
+  const password = el.passwordInput?.value ?? '';
+  await api.authLogin(username, password);
+  loadContents();
+}
+
+async function handleRegister() {
+  const username = el.usernameInput?.value ?? '';
+  const password = el.passwordInput?.value ?? '';
+  const confirmation = el.confirmationInput?.value ?? '';
+  await api.authRegister(username, password, confirmation);
+  loadContents();
+}
+
+async function handlePassChange() {
+  const oldPassword = el.oldPasswordInput?.value ?? '';
+  const newPassword = el.newPasswordInput?.value ?? '';
+  const confirmation = el.confirmationInput?.value ?? '';
+  await api.authChangePass(oldPassword, newPassword, confirmation);
 }
 
 async function fetchRecordsList(search?: string) {
@@ -365,4 +399,32 @@ async function saveCurrentRecord() {
 
   const result = await env.fetchedRecords[id].save();
   env.fetchedRecords = { ...env.fetchedRecords, [result.id]: result };
+}
+
+async function fetchHTMLElement(filename: string) {
+  const response = (await axios.get(`/static/${filename}.html`)).data;
+  const dummy = document.createElement('div');
+  dummy.innerHTML = response;
+  return dummy.childElementCount === 1 ? dummy.firstChild : dummy;
+}
+
+function makeModalForm(activator: HTMLElement | null, templateName: string, handler: Function) {
+  if (activator) {
+    activator.onclick = async e => {
+      e.preventDefault();
+      const modal = (await fetchHTMLElement(templateName)) as HTMLElement;
+      document.querySelector('body')?.prepend(modal);
+      modal.querySelector('form')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        await handler();
+        modal.querySelector('form')?.reset();
+        Modal.getInstance(modal as Element)?.hide();
+      });
+      new Modal(modal as Element)?.show();
+      modal.addEventListener('shown.bs.modal', () =>
+        modal.querySelector<HTMLInputElement>('input:first-child')?.focus()
+      );
+      modal.addEventListener('hidden.bs.modal', () => modal.remove());
+    };
+  }
 }

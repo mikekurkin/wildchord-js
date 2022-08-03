@@ -4,6 +4,12 @@
 @import '../node_modules/codemirror/theme/material-darker.css';
 @import '../node_modules/codemirror/theme/neat.css';
 
+
+@font-face {
+  font-family: 'Iosevka SS07';
+  src: url(iosevka-ss07-regular.woff2) format('woff');
+}
+
 :root {
   --toolbar-height: 45px;
   --browse-pane-width: 320px;
@@ -14,6 +20,7 @@
 }
 
 body.dark {
+  
     --bs-border-color: hsl(0, 0%, 30%);
     --bs-body-bg: hsl(0, 0%, 16%);
     --bs-body-color: hsl(0, 0%, 75%);
@@ -54,7 +61,9 @@ body.dark {
     color: var(--bs-body-color);
   }
 
-  
+  .form-check-input:checked {
+    background-color: hsl(216, 50%, 48%)
+  }
 
   .link:hover {
     --link-hover-color: hsl(0, 0%, 50%);
@@ -163,10 +172,6 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-@font-face {
-  font-family: 'Iosevka SS07';
-  src: url(iosevka-ss07-regular.woff2) format('woff');
-}
 
 .CodeMirror {
   height: 100% !important;

@@ -17,6 +17,15 @@ export interface User {
   username: string;
 }
 
+export class NullUser implements User {
+  is_anonymous = true;
+  id = -1;
+  username = 'Guest';
+  constructor() {
+    Object.freeze(this)
+  }
+}
+
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
