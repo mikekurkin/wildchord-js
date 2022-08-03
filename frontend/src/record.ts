@@ -36,7 +36,7 @@ export class Record {
         minute: 'numeric',
       });
     if (this.card) {
-      this.card.setAttribute('href', `?r=${this.response.id}`);
+      this.card.setAttribute('href', `/r/${this.response.id}`);
       this.card.classList.toggle('active', this.response.id === env.activeRecordId);
       this.card.dataset.id = this.response.id;
       this.card.onclick = (e: MouseEvent) => {

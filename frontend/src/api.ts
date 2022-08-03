@@ -9,20 +9,20 @@ export class Api {
   }
 
   private get currentUser(): User | null {
-    return JSON.parse(sessionStorage.getItem('profile') ?? 'null');
+    return JSON.parse(localStorage.getItem('profile') ?? 'null');
   }
 
   private set currentUser(value: User | null) {
-    const oldValue = sessionStorage.getItem('profile');
+    const oldValue = localStorage.getItem('profile');
     const newValue = JSON.stringify(value);
-    if (value === null) sessionStorage.removeItem('profile');
-    else sessionStorage.setItem('profile', newValue);
+    if (value === null) localStorage.removeItem('profile');
+    else localStorage.setItem('profile', newValue);
     window.dispatchEvent(
       new StorageEvent('storage', {
         key: 'profile',
         oldValue: oldValue,
         newValue: value && newValue,
-        storageArea: window.sessionStorage,
+        storageArea: window.localStorage,
         url: window.location.toString(),
       })
     );

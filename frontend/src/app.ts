@@ -31,7 +31,7 @@ window.addEventListener('unhandledrejection', function (e) {
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', handleThemeChange);
 
 window.addEventListener('storage', function (e) {
-  if (e.storageArea === window.sessionStorage && e.key === 'profile') handleUserChange();
+  if (e.storageArea === window.localStorage && e.key === 'profile') handleUserChange();
   console.log(e);
 });
 
@@ -68,7 +68,7 @@ export const env = {
     saveCurrentRecord();
     if (value !== this._activeRecordId) {
       this._activeRecordId = value;
-      if (pushState) history.pushState({ r: value }, '', value === null ? '/' : `?r=${value}`);
+      if (pushState) history.pushState({ r: value }, '', value === null ? '/' : `/r/${value}`);
       if (this._activeRecordId !== null) fetchRecordDetails(this._activeRecordId);
     }
     handleRecordChange();
@@ -95,8 +95,8 @@ export const env = {
   },
 
   get profile() {
-    if (sessionStorage.getItem('profile') === null) return { is_anonymous: true };
-    else return JSON.parse(sessionStorage.getItem('profile')!);
+    if (localStorage.getItem('profile') === null) return { is_anonymous: true };
+    else return JSON.parse(localStorage.getItem('profile')!);
   },
 };
 
@@ -274,9 +274,12 @@ async function loadContents() {
   Modal.getInstance(el.loginModal as Element)?.hide();
   el.loginForm?.reset();
 
-  const urlParams = new URLSearchParams(window.location.search);
+  // const urlParams = new URLSearchParams(window.location.search);
   let r = null;
-  if (urlParams.has('r')) r = urlParams.get('r');
+  // if (urlParams.has('r')) r = urlParams.get('r');
+
+  const urlPath = window.location.pathname.replace(/\/+$/, '').split('/');
+  if (urlPath[urlPath.length - 2] === 'r') r = urlPath[urlPath.length - 1];
 
   await fetchRecordsList();
   env.activeRecordId = r;
