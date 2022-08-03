@@ -28,12 +28,7 @@ window.addEventListener('unhandledrejection', function (e) {
   }
 });
 
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
-  if (el.cm) {
-    el.cm.setOption('theme', env.darkMode ? 'material-darker' : 'neat');
-    el.cm.save();
-  }
-});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', handleThemeChange);
 
 window.addEventListener('storage', function (e) {
   if (e.storageArea === window.sessionStorage && e.key === 'profile') handleUserChange();
@@ -41,13 +36,24 @@ window.addEventListener('storage', function (e) {
 });
 
 export const env = {
-  forceDark: false,
-  forceLight: false,
+  _darkOverride: JSON.parse(window.localStorage.getItem('dark-override')!) ?? (null as boolean | null), // null - auto, true - force dark, false - force light
+  get darkOverride() {
+    return this._darkOverride;
+  },
+  set darkOverride(value) {
+    this._darkOverride = value;
+    if (value === null) {
+      window.localStorage.removeItem('dark-override');
+    } else {
+      window.localStorage.setItem('dark-override', JSON.stringify(value));
+    }
+    handleThemeChange();
+  },
   get systemDarkMode() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   },
   get darkMode() {
-    return !this.forceLight && (this.systemDarkMode || this.forceDark);
+    return this.darkOverride ?? this.systemDarkMode;
   },
 
   _activeRecordId: null as string | null,
@@ -92,15 +98,15 @@ export const env = {
     if (sessionStorage.getItem('profile') === null) return { is_anonymous: true };
     else return JSON.parse(sessionStorage.getItem('profile')!);
   },
-  set profile(value) {
-    sessionStorage.setItem('profile', JSON.stringify(value));
-  },
 };
 
 export const el = {
   cm: null as EditorFromTextArea | null,
   get root() {
     return document.querySelector<HTMLElement>(':root');
+  },
+  get body() {
+    return document.querySelector<HTMLBodyElement>('body');
   },
   get username() {
     return document.querySelector<HTMLParagraphElement>('.username');
@@ -123,8 +129,17 @@ export const el = {
   get userBtn() {
     return document.querySelector<HTMLButtonElement>('.user-btn');
   },
+  get themeCheckBox() {
+    return document.querySelector<HTMLInputElement>('.theme-check');
+  },
+  get themeAutoCheckBox() {
+    return document.querySelector<HTMLInputElement>('.theme-auto-check');
+  },
   get logoutLink() {
     return document.querySelector<HTMLAnchorElement>('.logout-link');
+  },
+  get loginLink() {
+    return document.querySelector<HTMLAnchorElement>('.login-link');
   },
   get loginModal() {
     return document.querySelector<HTMLDivElement>('#login-form-modal');
@@ -156,10 +171,16 @@ export const el = {
   get activeRecordCards() {
     return document.querySelectorAll<HTMLAnchorElement>(`[data-id].active, [data-id="${env.activeRecordId}"]`);
   },
+  get authOnlyLis() {
+    return document.querySelectorAll<HTMLLIElement>('li.auth-only');
+  },
+  get unauthOnlyLis() {
+    return document.querySelectorAll<HTMLLIElement>('li.unauth-only');
+  },
 };
 
 function handleUserChange() {
-  if (el.username) el.username.innerHTML = env.profile.is_anonymous ? 'Log In' : env.profile.username;
+  if (el.username) el.username.innerHTML = env.profile.username ?? 'Guest';
   el.browsePane?.classList.toggle('d-md-flex', !env.profile.is_anonymous);
   el.browsePane?.classList.toggle('d-none', env.profile.is_anonymous);
   el.browsePane?.classList.toggle('d-md-none', env.profile.is_anonymous);
@@ -169,11 +190,24 @@ function handleUserChange() {
   });
 
   if (env.activeRecordId) fetchRecordDetails(env.activeRecordId).catch(() => (env.activeRecordId = null));
+  el.authOnlyLis.forEach(e => e.toggleAttribute('hidden', env.profile.is_anonymous));
+  el.unauthOnlyLis.forEach(e => e.toggleAttribute('hidden', !env.profile.is_anonymous));
+
+  el.themeCheckBox?.addEventListener('input', function () {
+    env.darkOverride = el.themeCheckBox?.checked ?? null;
+  });
+  el.themeAutoCheckBox?.addEventListener('input', function () {
+    env.darkOverride = el.themeAutoCheckBox?.checked ? null : el.themeCheckBox?.checked;
+  });
+
+  if (el.userBtn) {
+    el.userBtn.dataset.bsToggle = 'dropdown';
+  }
 
   if (env.profile.is_anonymous) {
-    if (el.userBtn) {
-      el.userBtn.dataset.bsToggle = 'modal';
-      el.userBtn.dataset.bsTarget = '#login-form-modal';
+    if (el.loginLink) {
+      el.loginLink.dataset.bsToggle = 'modal';
+      el.loginLink.dataset.bsTarget = '#login-form-modal';
     }
 
     el.loginForm?.addEventListener('submit', e => {
@@ -188,14 +222,12 @@ function handleUserChange() {
   } else {
     el.newBtns.forEach(e => e.addEventListener('click', createNewRecord));
     el.delBtn?.addEventListener('click', deleteCurrentRecord);
-    if (el.userBtn) {
-      el.userBtn.dataset.bsToggle = 'dropdown';
-      el.logoutLink?.addEventListener('click', e => {
-        e.preventDefault();
-        saveCurrentRecord();
-        api.authLogout().then(loadContents);
-      });
-    }
+
+    el.logoutLink?.addEventListener('click', e => {
+      e.preventDefault();
+      saveCurrentRecord();
+      api.authLogout().then(loadContents);
+    });
   }
 }
 
@@ -226,7 +258,19 @@ function handleRecordChange() {
   }
 }
 
+function handleThemeChange() {
+  if (el.cm) {
+    el.cm.setOption('theme', env.darkMode ? 'material-darker' : 'neat');
+    el.cm.save();
+  }
+  el.body?.classList.toggle('dark', env.darkMode);
+
+  if (el.themeCheckBox) el.themeCheckBox.checked = env.darkOverride == null ? env.darkMode : env.darkOverride;
+  if (el.themeAutoCheckBox) el.themeAutoCheckBox.checked = env.darkOverride === null;
+}
+
 async function loadContents() {
+  handleThemeChange();
   Modal.getInstance(el.loginModal as Element)?.hide();
   el.loginForm?.reset();
 

@@ -13,12 +13,10 @@
   --bs-dropdown-min-width: 80px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+body.dark {
     --bs-border-color: hsl(0, 0%, 30%);
     --bs-body-bg: hsl(0, 0%, 16%);
     --bs-body-color: hsl(0, 0%, 75%);
-  }
 
   .modal-content {
     --bs-modal-bg: var(--bs-body-bg);
@@ -51,32 +49,54 @@
     --bs-list-group-action-active-color: var(--bs-list-group-action-hover-color);
   }
   .form-control,
-  .form-control:focus,
-  .list-group-item {
+  .form-control:focus {
     background-color: var(--bs-body-bg);
     color: var(--bs-body-color);
   }
+
+  
+
   .link:hover {
     --link-hover-color: hsl(0, 0%, 50%);
   }
-  .link:focus {
-    --link-focus-color: hsl(0, 0%, 60%);
+  
+  .link:focus,
+  .link:focus-within {
+    --link-focus-color: hsl(0, 0%, 60%) !important;
+    --bs-btn-active-color: var(--link-focus-color) !important;
   }
 }
 
 .link {
   --link-hover-color: hsl(0, 0%, 50%);
   --link-focus-color: hsl(0, 0%, 30%);
+  
   &.btn:focus {
-    color: var(--link-focus-color);
+    color: var(--link-focus-color) !important;
+    --bs-btn-active-color: var(--link-focus-color) !important;
   }
-  &.btn:hover {
+  &.btn:hover,
+  &.btn.show {
     color: var(--link-hover-color) !important;
   }
   text-decoration: none;
   color: var(--bs-body-color);
   &:hover {
     color: var(--link-hover-color) !important;
+  }
+}
+
+.list-group-item {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  
+  &:hover {
+    background-color: var(--bs-list-group-action-hover-bg);
+    color: var(--bs-list-group-action-hover-color);
+  }
+  &.active {
+    background-color: var(--bs-list-group-active-bg);
+    color: var(--bs-list-group-active-color);
   }
 }
 

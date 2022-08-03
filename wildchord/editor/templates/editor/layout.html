@@ -38,7 +38,24 @@
           <i class="fa-solid fa-angle-down"></i>
           </button>
           <ul class="dropdown-menu dropdown-menu-end shadow">
-            <li><a class="logout-link dropdown-item" href="#">Log Out</a></li>
+            <li>
+              <div class="row mx-2">
+                <div class="col-auto"><i class="fa-regular fa-sun px-0"></i></div>
+                <div class="col-auto form-check form-switch px-0 mx-0">
+                  <input class="theme-check form-check-input mx-0 px-0 d-inline" type="checkbox" role="switch" id="flexSwitchCheckDefault">
+                </div>
+                <div class="col-auto"><i class="fa-regular fa-moon px-0"></i></div>
+                <div class="form-check col ms-2">
+                  <input class="theme-auto-check form-check-input" type="checkbox" value="" id="defaultCheck1">
+                  <label class="form-check-label" for="defaultCheck1">
+                    Auto
+                  </label>
+                </div>
+              </div>
+            </li>
+            <li class="auth-only"><a class="change-pass-link dropdown-item" href="#">Change Password</a></li>
+            <li class="auth-only"><a class="logout-link dropdown-item" href="#">Log Out</a></li>
+            <li class="unauth-only"><a class="login-link dropdown-item" href="#">Log In</a></li>
           </ul>
         </div>
       </div>
