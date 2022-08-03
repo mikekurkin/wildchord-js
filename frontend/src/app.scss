@@ -10,6 +10,7 @@
   src: url(iosevka-ss07-regular.woff2) format('woff');
 }
 
+
 :root {
   --toolbar-height: 45px;
   --browse-pane-width: 320px;
@@ -17,6 +18,12 @@
 
 .dropdown-menu {
   --bs-dropdown-min-width: 80px;
+}
+
+.error-alert {
+  z-index: 1070;
+  --bs-toast-max-width: 600px;
+  width: auto !important;
 }
 
 body.dark {

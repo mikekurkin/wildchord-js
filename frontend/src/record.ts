@@ -12,8 +12,8 @@ export class Record {
   id: string;
   response: RecordResponse;
 
-  static async create() {
-    return new Record(await api.createRecord());
+  static async create(contents?: string) {
+    return new Record(await api.createRecord(contents));
   }
 
   constructor(response: RecordResponse) {

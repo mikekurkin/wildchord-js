@@ -9,6 +9,7 @@ export class Api {
       xsrfHeaderName: 'X-CSRFToken',
       xsrfCookieName: 'csrftoken',
       baseURL: root,
+      withCredentials: true,
     });
   }
 
@@ -111,11 +112,15 @@ export class Api {
   }
 
   async authChangePass(oldPassword: string, newPassword: string, confirmation: string) {
-    await this.ax.post('/auth/password/change/', {
-      old_password: oldPassword,
-      new_password1: newPassword,
-      new_password2: confirmation,
-    });
+    await this.ax.post(
+      '/auth/password/change/',
+      {
+        old_password: oldPassword,
+        new_password1: newPassword,
+        new_password2: confirmation,
+      },
+      { headers: await this.headers }
+    );
   }
 
   async getCurrentUser() {

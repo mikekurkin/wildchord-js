@@ -1,4 +1,4 @@
-import * as CodeMirror from 'codemirror';
+import CodeMirror from 'codemirror';
 
 CodeMirror.defineSimpleMode("chords", {
   start: [

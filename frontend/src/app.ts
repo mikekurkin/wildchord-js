@@ -3,7 +3,7 @@ import { Record } from './record';
 import { NullUser, RecordResponse, User } from './types';
 
 import axios, { AxiosError } from 'axios';
-import { Modal } from 'bootstrap';
+import { Modal, Toast } from 'bootstrap';
 import CodeMirror, { EditorFromTextArea } from 'codemirror';
 
 import 'bootstrap';
@@ -19,12 +19,20 @@ window.addEventListener('popstate', e => {
 });
 
 window.addEventListener('unhandledrejection', function (e) {
-  if (e.reason instanceof AxiosError) {
+  if (e.reason instanceof AxiosError && e.reason.response) {
     e.preventDefault();
-    console.warn(e.reason.message);
-    console.log(e.reason.response);
-  } else {
-    console.log(e);
+    const res = e.reason.response;
+    if (el.errorAlert && el.errorMsg) {
+      if (res.status === 400) {
+        const { non_field_errors, ...rest } = res.data;
+        const strs = [non_field_errors, ...Object.values(rest)];
+        el.errorMsg.innerHTML = strs.length > 0 ? strs.join('\n') : `${res.status}: ${res.data.detail}`;
+      } else {
+        el.errorMsg.innerHTML = `${res.status}: ${res.data.detail}`;
+      }
+      const toast = Toast.getOrCreateInstance(el.errorAlert);
+      toast.show();
+    }
   }
 });
 
@@ -32,7 +40,6 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', han
 
 window.addEventListener('storage', function (e) {
   if (e.storageArea === window.localStorage && e.key === 'profile') handleUserChange();
-  console.log(e);
 });
 
 export const env = {
@@ -75,7 +82,8 @@ export const env = {
   },
 
   get activeRecord() {
-    return this.activeRecordId ? this.fetchedRecords[this.activeRecordId] : null;
+    if (!this.activeRecordId || !this.fetchedRecords[this.activeRecordId]) return null;
+    else return this.fetchedRecords[this.activeRecordId];
   },
 
   _fetchedRecords: {} as { [id: string]: Record },
@@ -180,6 +188,9 @@ export const el = {
   get saveBtn() {
     return document.querySelector<HTMLButtonElement>('.save-btn');
   },
+  get dupBtn() {
+    return document.querySelector<HTMLButtonElement>('.dup-btn');
+  },
   get backBtn() {
     return document.querySelector<HTMLButtonElement>('.back-btn');
   },
@@ -201,6 +212,12 @@ export const el = {
   get unauthOnlyLis() {
     return document.querySelectorAll<HTMLLIElement>('li.unauth-only');
   },
+  get errorAlert() {
+    return document.querySelector<HTMLDivElement>('.error-alert');
+  },
+  get errorMsg() {
+    return document.querySelector<HTMLParagraphElement>('.error-msg');
+  },
 };
 
 async function handleUserChange() {
@@ -209,33 +226,32 @@ async function handleUserChange() {
   el.browsePane?.classList.toggle('d-none', env.profile.is_anonymous);
   el.browsePane?.classList.toggle('d-md-none', env.profile.is_anonymous);
   el.root?.style.setProperty('--browse-pane-width', env.profile.is_anonymous ? '0' : '320px');
-  [el.saveBtn, el.delBtn, el.backBtn, el.shareBtn, ...el.newBtns, el.browsePane].forEach(e => {
+  [el.saveBtn, el.dupBtn, el.delBtn, el.backBtn, el.shareBtn, ...el.newBtns, el.browsePane].forEach(e => {
     e?.toggleAttribute('hidden', env.profile.is_anonymous);
   });
   [el.saveBtn, el.delBtn, el.shareBtn].forEach(e => {
     e?.toggleAttribute('hidden', !env.activeRecord?.response.can_edit);
   });
+  el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
 
-  if (env.activeRecordId) fetchRecordDetails(env.activeRecordId).catch(() => (env.activeRecordId = null));
+  if (env.activeRecordId) fetchRecordDetails(env.activeRecordId);
+
   el.authOnlyLis.forEach(e => e.toggleAttribute('hidden', env.profile.is_anonymous));
   el.unauthOnlyLis.forEach(e => e.toggleAttribute('hidden', !env.profile.is_anonymous));
-
-  el.themeCheckBox?.addEventListener('input', function () {
-    env.darkOverride = el.themeCheckBox?.checked ?? null;
-  });
-  el.themeAutoCheckBox?.addEventListener('input', function () {
-    env.darkOverride = el.themeAutoCheckBox?.checked ? null : el.themeCheckBox?.checked;
-  });
-
-  if (el.userBtn) {
-    el.userBtn.dataset.bsToggle = 'dropdown';
-  }
 
   if (env.profile.is_anonymous) {
     makeModalForm(el.loginLink, 'login_form', handleLogin);
     makeModalForm(el.regLink, 'register_form', handleRegister);
   } else {
-    el.newBtns.forEach(e => e.addEventListener('click', createNewRecord));
+    el.newBtns.forEach(e => e.addEventListener('click', () => createNewRecord()));
+    el.dupBtn?.addEventListener('click', async () => {
+      const id = env.activeRecordId;
+      if (id) {
+        await createNewRecord(env.activeRecord?.response.contents);
+        const { [id]: deleted, ...rest } = env.fetchedRecords;
+        env.fetchedRecords = rest;
+      }
+    });
     el.delBtn?.addEventListener('click', deleteCurrentRecord);
     makeModalForm(el.passChangeLink, 'pass_change_form', handlePassChange);
 
@@ -251,17 +267,19 @@ function handleRecordChange() {
   el.activeRecordCards.forEach(card => {
     card.classList.toggle('active', card.dataset.id === env.activeRecordId);
   });
-  if (env.activeRecordId === null && el.cm) {
+  if (env.activeRecord === null && el.cm) {
     el.cm.toTextArea();
   }
 
-  const recordResponse = env.activeRecordId === null ? null : env.activeRecord?.response ?? null;
-  el.browsePane?.classList.toggle('d-none', env.activeRecordId !== null);
-  el.editorPane?.classList.toggle('d-none', env.activeRecordId === null);
+  const recordResponse = env.activeRecord === null ? null : env.activeRecord?.response ?? null;
+
+  el.browsePane?.classList.toggle('d-none', env.activeRecord !== null);
+  el.editorPane?.classList.toggle('d-none', env.activeRecord === null);
 
   [el.saveBtn, el.delBtn, el.shareBtn].forEach(e => {
     e?.toggleAttribute('hidden', !env.activeRecord?.response.can_edit);
   });
+  el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
 
   if (!env.profile.is_anonymous && recordResponse?.can_edit) {
     (CodeMirror.commands as any).save = saveCurrentRecord;
@@ -295,9 +313,10 @@ async function loadContents() {
   const urlPath = window.location.pathname.replace(/\/+$/, '').split('/');
   if (urlPath[urlPath.length - 2] === 'r') r = urlPath[urlPath.length - 1];
 
-  handleUserChange();
   await fetchRecordsList();
   env.activeRecordId = r;
+  handleUserChange();
+
   el.searchbar?.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       this.value = '';
@@ -307,12 +326,24 @@ async function loadContents() {
   el.searchbar?.addEventListener('input', function () {
     fetchRecordsList(this.value);
   });
+
   if (el.backBtn) {
     el.backBtn.onclick = function (e) {
       e.preventDefault();
       el.browsePane?.classList.remove('d-none');
       el.editorPane?.classList.add('d-none');
     };
+  }
+
+  el.themeCheckBox?.addEventListener('input', function () {
+    env.darkOverride = el.themeCheckBox?.checked ?? null;
+  });
+  el.themeAutoCheckBox?.addEventListener('input', function () {
+    env.darkOverride = el.themeAutoCheckBox?.checked ? null : el.themeCheckBox?.checked;
+  });
+
+  if (el.errorAlert) {
+    Toast.getOrCreateInstance(el.errorAlert).dispose();
   }
 }
 
@@ -352,16 +383,12 @@ async function fetchRecordsList(search?: string) {
 }
 
 async function fetchRecordDetails(id: string) {
-  try {
-    let record = env.fetchedRecords[id];
-    if (!record) {
-      record = new Record(await api.getRecordDetails(id));
-      env.fetchedRecords = { ...env.fetchedRecords, [record.id]: record };
-    }
-    record.open();
-  } catch {
-    env.activeRecordId = null;
+  let record = env.fetchedRecords[id];
+  if (!record) {
+    record = new Record(await api.getRecordDetails(id));
+    env.fetchedRecords = { ...env.fetchedRecords, [record.id]: record };
   }
+  record.open();
 }
 
 function handleCardsUpdate() {
@@ -375,9 +402,9 @@ function handleCardsUpdate() {
   el.browseItems?.replaceChildren(...cards);
 }
 
-async function createNewRecord() {
+async function createNewRecord(contents?: string) {
   saveCurrentRecord();
-  const newRecord = await Record.create();
+  const newRecord = await Record.create(contents);
   env.fetchedRecords = { ...env.fetchedRecords, [newRecord.id]: newRecord };
   env.activeRecordId = newRecord.id;
 }
@@ -388,7 +415,7 @@ async function deleteCurrentRecord() {
 
   const record = env.fetchedRecords[id];
   await record.delete();
-  const { [id]: string, ...rest } = env.fetchedRecords;
+  const { [id]: deleted, ...rest } = env.fetchedRecords;
   env.fetchedRecords = rest;
   env.activeRecordId = null;
 }
