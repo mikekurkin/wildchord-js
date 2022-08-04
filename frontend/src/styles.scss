@@ -1,13 +1,15 @@
-@import '~bootstrap/scss/bootstrap';
 
 @import '../node_modules/codemirror/lib/codemirror.css';
 @import '../node_modules/codemirror/theme/material-darker.css';
 @import '../node_modules/codemirror/theme/neat.css';
+@import '../node_modules/@fortawesome/fontawesome-free/css/fontawesome.css';
+@import '../node_modules/@fortawesome/fontawesome-free/css/all.css';
 
+@import '~bootstrap/scss/bootstrap';
 
 @font-face {
   font-family: 'Iosevka SS07';
-  src: url(iosevka-ss07-regular.woff2) format('woff');
+  src: url(./static/iosevka-ss07-regular.woff2) format('woff');
 }
 
 

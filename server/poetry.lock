@@ -204,6 +204,14 @@ dev = ["pre-commit", "mypy", "coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0
 crypto = ["cryptography (>=3.3.1)"]
 
 [[package]]
+name = "python-decouple"
+version = "3.6"
+description = "Strict separation of settings from code."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "python3-openid"
 version = "3.2.0"
 description = "OpenID support for modern servers and consumers."
@@ -290,8 +298,8 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.10"
-content-hash = "2b414a84939a5b5b8271dca1d97d7f8c625b03ace88db57cd6d44df077fb7520"
+python-versions = "3.10.5"
+content-hash = "17b45ac38a0ed1b371ed40b8c71fb3fe1c86d26246e1a9b868b78a612e2548b1"
 
 [metadata.files]
 asgiref = []
@@ -310,6 +318,7 @@ idna = []
 oauthlib = []
 pycparser = []
 pyjwt = []
+python-decouple = []
 python3-openid = []
 pytz = []
 requests = []

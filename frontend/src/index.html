@@ -1,19 +1,25 @@
-{% load static %}
-
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WildChord</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="{% static 'bundle.js' %}"></script>
-    {% include 'editor/item_card_template.html' %}
+    <script src="./app.ts" type="module"></script>
+    <link rel="stylesheet" href="./styles.scss">
+    <template id="item-card-template">
+      <a href="#" class="item-card list-group-item list-group-item-action border-bottom px-4 p-2">
+        <p class="mb-1 text-truncate"><b class="title-line"></b></p>
+        <div class="row justify-content-between">
+          <p class="second-line col text-truncate"></p>
+          <i class="timestamp col-auto"></i>
+        </div>
+      </a>
+    </template>
   </head>
   <body>
     <div class="body vh-100 d-flex flex-column overflow-hidden">
       <div class="header flex-shrink-1 px-4 border-bottom row align-items-center">
-        <div class="col-auto"><a href="{% url 'index' %}" class="h2 fw-light link">WildChord</a></div>
+        <div class="col-auto"><a href="/" class="h2 fw-light link">WildChord</a></div>
         <div class="user-menu col-auto ms-auto">
           <button class="user-btn btn btn-link link text-decoration-none px-0" aria-expanded="false" data-bs-toggle="dropdown">
           <span class="username"></span>
@@ -53,14 +59,14 @@
       </div>
       <div class="panes flex-fill d-flex flex-row overflow-hidden">
         <div class="browse-pane d-md-flex flex-column border-end">
-          <div class="navbar py-1 border-bottom row mx-0 gx-2 align-items-center">
+          <div class="navbar py-0 border-bottom row mx-0 gx-2 align-items-center">
             <div class="col">
             <div class="searchbar m-0 d-flex align-items-center">
               <i class="search-icon ps-1 fa-solid fa-magnifying-glass"></i>
               <input type="text" class="form-control border-0 rounded-0 ps-4 m-0 w-100 h-100" placeholder="Search">
             </div>
             </div>
-            <div class="col-auto d-inline-block d-md-none"><a class="h5 my-0"><span class="my-0 fa-regular fa-pen-to-square"></span></a></div>
+            <div class="col-auto d-inline-block d-md-none"><button class="new-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-regular fa-pen-to-square"></span></button></div>
           </div>
           <div class="browse-items overflow-scroll">
             <ul class="list-group list-group-flush">
@@ -91,22 +97,22 @@
         <div class="editor-pane d-md-flex flex-column flex-fill d-none">
           <div class="toolbar border-bottom">
             <div class="row gx-0 align-items-center">
-              <div class="col-auto d-inline-block d-md-none"><button class="back-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-solid fa-angle-left"></span></button></div>
-              <div class="col-auto"><button class="new-btn btn btn-link link my-0 px-2.11.5/dist/umd/popper.min.js"><span class="h4 my-0 fa-regular fa-pen-to-square"></span></button></div>
-              <div class="col-auto"><button class="save-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-solid fa-floppy-disk"></span></button></div>
-              <div class="col-auto"><button class="dup-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-regular fa-copy"></span></button></div>
-              <div class="col-auto h5 my-0 ms-auto px-2">
+              <div class="col-auto d-inline-block d-md-none"><button class="back-btn btn btn-link link my-0 px-2"><span class="fs-4 my-0 fa-solid fa-angle-left"></span></button></div>
+              <div class="col-auto"><button class="new-btn btn btn-link link my-0 px-2"><span class="fs-4 my-0 fa-regular fa-pen-to-square"></span></button></div>
+              <div class="col-auto"><button class="save-btn btn btn-link link my-0 px-2"><span class="fs-4 my-0 fa-solid fa-floppy-disk"></span></button></div>
+              <div class="col-auto"><button class="dup-btn btn btn-link link my-0 px-2"><span class="fs-4 my-0 fa-regular fa-copy"></span></button></div>
+              <div class="col-auto fs-4 my-0 ms-auto px-2">
                 <button class="font-down-btn btn btn-link link my-0 px-0"><h5>-</h5></button>
                 <span class="my-0 fa-solid fa-font"></span>
                 <button class="font-up-btn btn btn-link link my-0 px-0"><h5>+</h5></button>
               </div>
-              <div class="col-auto h5 my-0 px-2">
+              <div class="col-auto fs-4 my-0 px-2">
                 <button class="transp-down-btn btn btn-link link my-0 px-0"><h5>-</h5></button>
                 <span class="my-0 fa-solid fa-music"></span>
                 <button class="transp-up-btn btn btn-link link my-0 px-0"><h5>+</h5></button>
               </div>
-              <div class="col-auto ms-auto"><button class="share-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-solid fa-arrow-up-from-bracket"></span></button></div>
-              <div class="col-auto"><button class="del-btn btn btn-link link my-0 px-2"><span class="h4 my-0 fa-regular fa-trash-can"></span></button></div>
+              <div class="col-auto ms-auto"><button class="share-btn btn btn-link link my-0 px-2"><span class="fs-4 my-0 fa-solid fa-arrow-up-from-bracket"></span></button></div>
+              <div class="col-auto"><button class="del-btn btn btn-link link my-0 px-2"><span class="fs-4 my-0 fa-regular fa-trash-can"></span></button></div>
             </div>
           </div>
           <div class="editor p-0 overflow-auto">

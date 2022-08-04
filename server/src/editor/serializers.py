@@ -6,7 +6,6 @@ from .models import Record, User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        # fields = ['url', 'id', 'username', 'records']
         fields = ['is_anonymous', 'id', 'username']
 
 

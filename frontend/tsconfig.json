@@ -6,8 +6,6 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "strict": true,
-    "typeRoots": ["./node_modules/@types"],
-    "types": ["node", "codemirror"],
   },
   "exclude": [
     "node_modules"

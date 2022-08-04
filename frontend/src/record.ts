@@ -53,7 +53,6 @@ export class Record {
     el.editorPane?.classList.remove('d-none');
     if (el.cm) {
       el.cm.toTextArea();
-      if (el.saveBtn) el.saveBtn.onclick = null;
     }
     if (el.editorTextArea) {
       el.editorTextArea.value = this.response.contents ?? '';

@@ -6,8 +6,6 @@ export class Api {
 
   constructor(root = '') {
     this.ax = axios.create({
-      xsrfHeaderName: 'X-CSRFToken',
-      xsrfCookieName: 'csrftoken',
       baseURL: root,
       withCredentials: true,
     });

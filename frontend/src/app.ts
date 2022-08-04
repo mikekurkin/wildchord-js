@@ -10,7 +10,7 @@ import 'bootstrap';
 import 'codemirror/addon/mode/simple';
 import './chord-md';
 
-export const api = new Api('/api');
+export const api = new Api(`${window.location.protocol.toString()}//${window.location.hostname.toString()}:8000/api`);
 
 document.addEventListener('DOMContentLoaded', loadContents);
 
@@ -281,17 +281,9 @@ function handleRecordChange() {
   });
   el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
 
-  if (!env.profile.is_anonymous && recordResponse?.can_edit) {
-    (CodeMirror.commands as any).save = saveCurrentRecord;
-    if (el.saveBtn)
-      el.saveBtn.onclick = function (e) {
-        e.preventDefault();
-        saveCurrentRecord();
-      };
-  } else {
-    if (el.saveBtn) el.saveBtn.onclick = null;
-    (CodeMirror.commands as any).save = null;
-  }
+  let saveCmd = (CodeMirror.commands as any).save;
+  saveCmd = !env.profile.is_anonymous && recordResponse?.can_edit ? saveCurrentRecord : null;
+  if (el.saveBtn) el.saveBtn.onclick = saveCmd;
 }
 
 function handleThemeChange() {
