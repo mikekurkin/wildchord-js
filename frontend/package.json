@@ -5,10 +5,12 @@
   "author": "Mike Kurkin <mike@kurkin.net>",
   "default": "app.ts",
   "dependencies": {
+    "@codemirror/lang-markdown": "6.0.1",
     "@fortawesome/fontawesome-free": "6.1.2",
     "axios": "0.27.2",
     "bootstrap": "5.2.0",
-    "codemirror": "5.65.7"
+    "codemirror": "5.65.7",
+    "codemirror6": "npm:codemirror@6.0.1"
   },
   "devDependencies": {
     "@parcel/transformer-sass": "2.7.0",

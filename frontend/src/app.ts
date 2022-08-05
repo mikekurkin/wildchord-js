@@ -4,11 +4,14 @@ import { NullUser, RecordResponse, User } from './types';
 
 import axios, { AxiosError } from 'axios';
 import { Modal, Toast } from 'bootstrap';
-import CodeMirror, { EditorFromTextArea } from 'codemirror';
+// import CodeMirror, { EditorFromTextArea } from 'codemirror';
+
+import { EditorView } from '@codemirror/view';
+// import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
 
 import 'bootstrap';
-import 'codemirror/addon/mode/simple';
-import './chord-md';
+// import 'codemirror/addon/mode/simple';
+// import './chord-md';
 
 export const api = new Api(`${window.location.protocol.toString()}//${window.location.hostname.toString()}:8000/api`);
 
@@ -92,14 +95,15 @@ export const env = {
   },
   set fetchedRecords(records) {
     this._fetchedRecords = records;
-    handleCardsUpdate();
+    window.dispatchEvent(new Event('wc-cards-updated'));
+    // handleCardsUpdate();
   },
 
   setFetchedRecordsFromResponseArray(array: Array<RecordResponse>) {
     const obj = {} as { [id: string]: Record };
     array.forEach(response => (obj[response.id] = new Record(response)));
-    this._fetchedRecords = obj;
-    handleCardsUpdate();
+    this.fetchedRecords = obj;
+    // handleCardsUpdate();
   },
 
   get profile(): User {
@@ -109,7 +113,8 @@ export const env = {
 };
 
 export const el = {
-  cm: null as EditorFromTextArea | null,
+  // cm: null as EditorFromTextArea | null,
+  cm: null as EditorView | null,
   get root() {
     return document.querySelector<HTMLElement>(':root');
   },
@@ -130,6 +135,9 @@ export const el = {
   },
   get editorPane() {
     return document.querySelector<HTMLDivElement>('.editor-pane');
+  },
+  get editor() {
+    return document.querySelector<HTMLDivElement>('.editor');
   },
   get editorTextArea() {
     return document.querySelector<HTMLTextAreaElement>('.editor-pane .contents');
@@ -267,8 +275,11 @@ function handleRecordChange() {
   el.activeRecordCards.forEach(card => {
     card.classList.toggle('active', card.dataset.id === env.activeRecordId);
   });
+  // if (env.activeRecord === null && el.cm) {
+  //   el.cm.toTextArea();
+  // }
   if (env.activeRecord === null && el.cm) {
-    el.cm.toTextArea();
+    el.cm?.destroy();
   }
 
   const recordResponse = env.activeRecord === null ? null : env.activeRecord?.response ?? null;
@@ -281,16 +292,22 @@ function handleRecordChange() {
   });
   el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
 
-  let saveCmd = (CodeMirror.commands as any).save;
-  saveCmd = !env.profile.is_anonymous && recordResponse?.can_edit ? saveCurrentRecord : null;
-  if (el.saveBtn) el.saveBtn.onclick = saveCmd;
+  if (env.activeRecord) {
+    if (el.saveBtn)
+      el.saveBtn.onclick = () => {
+        saveCurrentRecord();
+      };
+  }
+  // saveCmd = !env.profile.is_anonymous && recordResponse?.can_edit ? saveCurrentRecord : null;
+  // if (el.saveBtn) el.saveBtn.onclick = saveCmd;
+  // }
 }
 
 function handleThemeChange() {
-  if (el.cm) {
-    el.cm.setOption('theme', env.darkMode ? 'material-darker' : 'neat');
-    el.cm.save();
-  }
+  // if (el.cm) {
+  // el.cm.setOption('theme', env.darkMode ? 'material-darker' : 'neat');
+  // el.cm.save();
+  // }
   el.body?.classList.toggle('dark', env.darkMode);
 
   if (el.themeCheckBox) el.themeCheckBox.checked = env.darkOverride == null ? env.darkMode : env.darkOverride;
@@ -380,10 +397,12 @@ async function fetchRecordDetails(id: string) {
     record = new Record(await api.getRecordDetails(id));
     env.fetchedRecords = { ...env.fetchedRecords, [record.id]: record };
   }
-  record.open();
+  await record.open();
+  el.browsePane?.classList.add('d-none');
+  el.editorPane?.classList.remove('d-none');
 }
 
-function handleCardsUpdate() {
+window.addEventListener('wc-cards-updated', () => {
   let cards = new Array<HTMLAnchorElement>();
   let result = Object.values(env.fetchedRecords).sort(
     (a, b) => new Date(b.response.update_timestamp).getTime() - new Date(a.response.update_timestamp).getTime()
@@ -392,7 +411,7 @@ function handleCardsUpdate() {
     cards.push(record.card);
   });
   el.browseItems?.replaceChildren(...cards);
-}
+});
 
 async function createNewRecord(contents?: string) {
   saveCurrentRecord();
@@ -413,11 +432,12 @@ async function deleteCurrentRecord() {
 }
 
 async function saveCurrentRecord() {
-  const id = env.activeRecordId;
-  if (!id || !env.fetchedRecords[id]) return;
-
-  const result = await env.fetchedRecords[id].save();
-  env.fetchedRecords = { ...env.fetchedRecords, [result.id]: result };
+  // const id = env.activeRecordId;
+  // if (!id || !env.fetchedRecords[id]) return;
+  // const result = await env.fetchedRecords[id].save();
+  // env.fetchedRecords = { ...env.fetchedRecords, [result.id]: result };
+  env.activeRecord?.save();
+  // handleCardsUpdate();
 }
 
 async function fetchHTMLElement(filename: string) {
