@@ -5,14 +5,15 @@
   "author": "Mike Kurkin <mike@kurkin.net>",
   "default": "app.ts",
   "dependencies": {
-    "@codemirror/lang-markdown": "6.0.1",
     "@fortawesome/fontawesome-free": "6.1.2",
+    "@lezer/highlight": "1.0.0",
+    "@lezer/lr": "1.2.1",
     "axios": "0.27.2",
     "bootstrap": "5.2.0",
-    "codemirror": "5.65.7",
-    "codemirror6": "npm:codemirror@6.0.1"
+    "codemirror": "6.0.1"
   },
   "devDependencies": {
+    "@lezer/generator": "1.1.1",
     "@parcel/transformer-sass": "2.7.0",
     "@types/bootstrap": "5.2.1",
     "@types/codemirror": "5.60.5",
@@ -29,7 +30,8 @@
     "distDir": "dist/static"
   },
   "scripts": {
-    "prebuild": "rm -rf dist/*",
+    "build_parser": "npx lezer-generator src/chordsheet-lang/chordsheet.grammar -o src/chordsheet-lang/parser.js",
+    "prebuild": "rm -rf dist/* && npm run build_parser",
     "start": "parcel -p 8080",
     "build": "parcel build"
   }

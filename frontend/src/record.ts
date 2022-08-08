@@ -3,9 +3,9 @@ import { api, el, env } from './app';
 import { RecordResponse } from './types';
 
 import { history, historyKeymap, standardKeymap } from '@codemirror/commands';
-// import { markdown } from '@codemirror/lang-markdown';
 import { highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
-import { EditorView, minimalSetup } from 'codemirror6';
+import { EditorView, minimalSetup } from 'codemirror';
+import { chordsheet } from './chordsheet-lang/chordsheet';
 
 export class Record {
   private static get cardTemplate(): HTMLTemplateElement {
@@ -58,8 +58,8 @@ export class Record {
     el.cm = new EditorView({
       doc: this.response.contents,
       extensions: [
-        // basicSetup,
         minimalSetup,
+        chordsheet(),
         lineNumbers(),
         highlightActiveLine(),
         highlightActiveLineGutter(),
@@ -68,21 +68,7 @@ export class Record {
       ],
       parent: el.editor as Element,
     });
-    // if (el.cm) {
-    //   el.cm.toTextArea();
-    // }
-    // if (el.editorTextArea) {
-    //   el.editorTextArea.value = this.response.contents ?? '';
-    // el.cm = CodeMirror.fromTextArea(el.editorTextArea, {
-    //   lineNumbers: true,
-    //   autofocus: true,
-    //   viewportMargin: Infinity,
-    //   scrollbarStyle: 'native',
-    //   mode: 'chords',
-    //   theme: env.darkMode ? 'material-darker' : 'neat',
-    //   readOnly: this.response.can_edit ? false : 'nocursor',
-    // });
-    // }
+    
     return this;
   }
 
@@ -91,26 +77,6 @@ export class Record {
     return this;
   }
 
-  // async save() {
-  //   // if (el.cm && this.id === env.activeRecordId) {
-  //   //   const oldContents = el.editorTextArea?.value;
-  //   //   el.cm.save();
-  //   //   const newContents = el.editorTextArea?.value;
-  //   //   if (newContents && oldContents !== newContents) {
-  //   //     this.response = await api.editRecord(this.id, newContents);
-  //   //     this.updateCard();
-  //   //   }
-  //   // }
-  //   if (el.cm && this.id === env.activeRecordId) {
-  //     const newContents = el.cm.state.doc.toString();
-  //     if (newContents) {
-  //       this.response = await api.editRecord(this.id, newContents);
-  //       this.updateCard();
-  //     }
-  //   }
-  //   return this;
-  // }
-  // }
   save = (target: EditorView | null = el.cm) => {
     if (this === env.activeRecord) {
       const newContents = target?.state.doc.toString();

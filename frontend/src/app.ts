@@ -4,14 +4,10 @@ import { NullUser, RecordResponse, User } from './types';
 
 import axios, { AxiosError } from 'axios';
 import { Modal, Toast } from 'bootstrap';
-// import CodeMirror, { EditorFromTextArea } from 'codemirror';
 
 import { EditorView } from '@codemirror/view';
-// import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
 
 import 'bootstrap';
-// import 'codemirror/addon/mode/simple';
-// import './chord-md';
 
 export const api = new Api(`${window.location.protocol.toString()}//${window.location.hostname.toString()}:8000/api`);
 
@@ -74,12 +70,15 @@ export const env = {
     this.setActiveRecordId(value);
   },
 
-  setActiveRecordId(value: string | null, pushState: boolean = true) {
+  async setActiveRecordId(value: string | null, pushState: boolean = true) {
     saveCurrentRecord();
     if (value !== this._activeRecordId) {
       this._activeRecordId = value;
       if (pushState) history.pushState({ r: value }, '', value === null ? '/' : `/r/${value}`);
-      if (this._activeRecordId !== null) fetchRecordDetails(this._activeRecordId);
+      if (this._activeRecordId !== null) {
+        console.log('called from sar');
+        await fetchRecordDetails(this._activeRecordId);
+      }
     }
     handleRecordChange();
   },
@@ -96,14 +95,12 @@ export const env = {
   set fetchedRecords(records) {
     this._fetchedRecords = records;
     window.dispatchEvent(new Event('wc-cards-updated'));
-    // handleCardsUpdate();
   },
 
   setFetchedRecordsFromResponseArray(array: Array<RecordResponse>) {
     const obj = {} as { [id: string]: Record };
     array.forEach(response => (obj[response.id] = new Record(response)));
     this.fetchedRecords = obj;
-    // handleCardsUpdate();
   },
 
   get profile(): User {
@@ -242,7 +239,10 @@ async function handleUserChange() {
   });
   el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
 
-  if (env.activeRecordId) fetchRecordDetails(env.activeRecordId);
+  if (env.activeRecordId) {
+    console.log('called from huc');
+    await fetchRecordDetails(env.activeRecordId);
+  }
 
   el.authOnlyLis.forEach(e => e.toggleAttribute('hidden', env.profile.is_anonymous));
   el.unauthOnlyLis.forEach(e => e.toggleAttribute('hidden', !env.profile.is_anonymous));
@@ -275,9 +275,6 @@ function handleRecordChange() {
   el.activeRecordCards.forEach(card => {
     card.classList.toggle('active', card.dataset.id === env.activeRecordId);
   });
-  // if (env.activeRecord === null && el.cm) {
-  //   el.cm.toTextArea();
-  // }
   if (env.activeRecord === null && el.cm) {
     el.cm?.destroy();
   }
@@ -298,16 +295,9 @@ function handleRecordChange() {
         saveCurrentRecord();
       };
   }
-  // saveCmd = !env.profile.is_anonymous && recordResponse?.can_edit ? saveCurrentRecord : null;
-  // if (el.saveBtn) el.saveBtn.onclick = saveCmd;
-  // }
 }
 
 function handleThemeChange() {
-  // if (el.cm) {
-  // el.cm.setOption('theme', env.darkMode ? 'material-darker' : 'neat');
-  // el.cm.save();
-  // }
   el.body?.classList.toggle('dark', env.darkMode);
 
   if (el.themeCheckBox) el.themeCheckBox.checked = env.darkOverride == null ? env.darkMode : env.darkOverride;
@@ -323,8 +313,8 @@ async function loadContents() {
   if (urlPath[urlPath.length - 2] === 'r') r = urlPath[urlPath.length - 1];
 
   await fetchRecordsList();
-  env.activeRecordId = r;
   handleUserChange();
+  env.activeRecordId = r;
 
   el.searchbar?.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
@@ -432,12 +422,7 @@ async function deleteCurrentRecord() {
 }
 
 async function saveCurrentRecord() {
-  // const id = env.activeRecordId;
-  // if (!id || !env.fetchedRecords[id]) return;
-  // const result = await env.fetchedRecords[id].save();
-  // env.fetchedRecords = { ...env.fetchedRecords, [result.id]: result };
   env.activeRecord?.save();
-  // handleCardsUpdate();
 }
 
 async function fetchHTMLElement(filename: string) {

@@ -1,0 +1,36 @@
+@top ChordsSheet { string+ }
+@skip { space }
+
+string { (Chord | Tuning | Capo | Text ) }
+
+// Regex form:
+// Chord:     /\b([A-H][b#♭♯♮]*)((?:(?:[mM](?!aj)(?!in))|maj|min)?)((?:\s?(?:\(?[M+\-b#♭♯oøΔ]|maj|add|dim|aug|sus){0,2}\d{1,2}?\)?\+?)*)(?:\s?\/\s?([A-H][b#♭♯♮]*))?(?!(?:[a-zA-Z.,/\-+="]))/g
+// Tuning:    /\b(([A-H][b#♭♯♮]*)\-?){3,8}(?!(?:[a-zJ-Z.,/\-+="]))/g
+// Capo:      /capo:?\s+[+\-]?\d{1,2}/gi
+
+@tokens {
+  space { @whitespace+ }
+
+  Text { ![ \n]+ }
+
+  naturalNote { $[A-H] }
+  accidental { $[b#♭♯♮] }
+  noteWithAccidental { naturalNote accidental }
+  Note { naturalNote | noteWithAccidental }
+
+  Quality { $[mM] | "maj" | "min" }
+  Tension { ( $[+-b#♭♯oøΔ] | "M" | "maj" | "add" | "dim" | "aug" | "sus" )? @digit @digit? }
+  Bass { "/" Note }
+  Chord { Note Quality? Tension? Tension? Bass? }
+  
+  Tuning { Note Note Note Note? Note? Note? Note? Note? }
+
+  capoKeyword { $[Cc] $[Aa] $[Pp] $[Oo] ":"? }
+  capoValue { $[+-]? @digit @digit? }
+  Capo { capoKeyword space? capoValue }
+  
+  @precedence { space, Text }
+  @precedence { Chord, Text }
+  @precedence { Capo, Text }
+  @precedence { Tuning, Text }
+}
