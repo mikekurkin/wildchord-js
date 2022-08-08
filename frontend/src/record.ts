@@ -3,6 +3,7 @@ import { api, el, env } from './app';
 import { RecordResponse } from './types';
 
 import { history, historyKeymap, standardKeymap } from '@codemirror/commands';
+import { EditorState } from '@codemirror/state';
 import { highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import { EditorView, minimalSetup } from 'codemirror';
 import { chordsheet } from './chordsheet-lang/chordsheet';
@@ -65,10 +66,11 @@ export class Record {
         highlightActiveLineGutter(),
         history(),
         keymap.of([...standardKeymap, ...historyKeymap, { key: 'Mod-s', run: this.save, preventDefault: true }]),
+        EditorState.readOnly.of(!this.response.can_edit),
+        EditorView.editable.of(this.response.can_edit),
       ],
       parent: el.editor as Element,
     });
-    
     return this;
   }
 
@@ -91,6 +93,13 @@ export class Record {
     }
     return false;
   };
+
+  async setPublic(make_public: boolean) {
+    this.response = await api.setPublic(this.id, make_public);
+    this.updateCard();
+    window.dispatchEvent(new Event('wc-cards-updated'));
+    return this;
+  }
 }
 
 // function createTooltips() {

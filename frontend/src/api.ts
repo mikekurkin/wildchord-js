@@ -148,7 +148,12 @@ export class Api {
   }
 
   async editRecord(id: string, newContents: string) {
-    const { data } = await this.ax.put(`/records/${id}`, { contents: newContents }, { headers: await this.headers });
+    const { data } = await this.ax.patch(`/records/${id}`, { contents: newContents }, { headers: await this.headers });
+    return data as RecordResponse;
+  }
+
+  async setPublic(id: string, make_public: boolean) {
+    const { data } = await this.ax.patch(`/records/${id}`, { is_public: make_public }, { headers: await this.headers });
     return data as RecordResponse;
   }
 }

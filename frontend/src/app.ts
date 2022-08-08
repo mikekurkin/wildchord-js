@@ -76,7 +76,6 @@ export const env = {
       this._activeRecordId = value;
       if (pushState) history.pushState({ r: value }, '', value === null ? '/' : `/r/${value}`);
       if (this._activeRecordId !== null) {
-        console.log('called from sar');
         await fetchRecordDetails(this._activeRecordId);
       }
     }
@@ -202,6 +201,15 @@ export const el = {
   get shareBtn() {
     return document.querySelector<HTMLButtonElement>('.share-btn');
   },
+  get shareCheck() {
+    return document.querySelector<HTMLInputElement>('.share-check');
+  },
+  get shareAddr() {
+    return document.querySelector<HTMLInputElement>('.share-addr');
+  },
+  get copyBtn() {
+    return document.querySelector<HTMLButtonElement>('.copy-btn');
+  },
   get delBtn() {
     return document.querySelector<HTMLButtonElement>('.del-btn');
   },
@@ -240,7 +248,6 @@ async function handleUserChange() {
   el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
 
   if (env.activeRecordId) {
-    console.log('called from huc');
     await fetchRecordDetails(env.activeRecordId);
   }
 
@@ -289,12 +296,52 @@ function handleRecordChange() {
   });
   el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
 
+  handleShareStateChange();
+
+  if (el.shareCheck)
+    el.shareCheck.oninput = async function (e) {
+      if (el.shareCheck) await env.activeRecord?.setPublic(el.shareCheck.checked);
+      handleShareStateChange();
+      el.shareAddr?.select();
+      el.shareAddr?.setSelectionRange(0, 999);
+    };
+
+  if (el.copyBtn)
+    el.copyBtn.onclick = function () {
+      if (el.shareAddr) {
+        el.shareAddr?.select();
+        el.shareAddr?.setSelectionRange(0, 999);
+        if (navigator.clipboard) navigator.clipboard.writeText(el.shareAddr.value);
+      }
+    };
+
+  if (el.shareAddr)
+    el.shareAddr.onclick = function () {
+      if (el.shareAddr) {
+        el.shareAddr?.select();
+        el.shareAddr?.setSelectionRange(0, 999);
+      }
+    };
+
+  if (el.shareAddr) {
+    el.shareAddr?.select();
+    el.shareAddr?.setSelectionRange(0, 999);
+    navigator.clipboard.writeText(el.shareAddr.value);
+  }
+
   if (env.activeRecord) {
     if (el.saveBtn)
       el.saveBtn.onclick = () => {
         saveCurrentRecord();
       };
   }
+}
+
+function handleShareStateChange() {
+  el.shareCheck?.toggleAttribute('checked', env.activeRecord?.response.is_public);
+  el.shareAddr?.toggleAttribute('disabled', !env.activeRecord?.response.is_public);
+  el.copyBtn?.toggleAttribute('disabled', !env.activeRecord?.response.is_public);
+  if (el.shareAddr) el.shareAddr.value = env.activeRecord?.response.is_public ? window.location.href : '';
 }
 
 function handleThemeChange() {
