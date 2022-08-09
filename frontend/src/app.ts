@@ -14,7 +14,8 @@ export const api = new Api(`${window.location.protocol.toString()}//${window.loc
 document.addEventListener('DOMContentLoaded', loadContents);
 
 window.addEventListener('popstate', e => {
-  env.setActiveRecordId(e.state.r, false);
+  if (e.state.r) env.setActiveRecordId(e.state.r, false);
+  history.replaceState(history.state, document.title, window.location.pathname);
 });
 
 window.addEventListener('unhandledrejection', function (e) {
@@ -106,6 +107,8 @@ export const env = {
     if (localStorage.getItem('profile') === null) return new NullUser();
     else return JSON.parse(localStorage.getItem('profile')!);
   },
+
+  modalListeners: {} as { [id: string]: EventListener },
 };
 
 export const el = {
@@ -198,17 +201,26 @@ export const el = {
   get backBtn() {
     return document.querySelector<HTMLButtonElement>('.back-btn');
   },
-  get shareBtn() {
-    return document.querySelector<HTMLButtonElement>('.share-btn');
+  get fontDownBtn() {
+    return document.querySelector<HTMLButtonElement>('.font-down-btn');
+  },
+  get fontUpBtn() {
+    return document.querySelector<HTMLButtonElement>('.font-up-btn');
+  },
+  get shareMenuBtn() {
+    return document.querySelector<HTMLButtonElement>('.shr-menu-btn');
   },
   get shareCheck() {
-    return document.querySelector<HTMLInputElement>('.share-check');
+    return document.querySelector<HTMLInputElement>('.shr-check');
   },
   get shareAddr() {
-    return document.querySelector<HTMLInputElement>('.share-addr');
+    return document.querySelector<HTMLInputElement>('.shr-addr');
   },
   get copyBtn() {
     return document.querySelector<HTMLButtonElement>('.copy-btn');
+  },
+  get delMenuBtn() {
+    return document.querySelector<HTMLButtonElement>('.del-menu-btn');
   },
   get delBtn() {
     return document.querySelector<HTMLButtonElement>('.del-btn');
@@ -239,10 +251,10 @@ async function handleUserChange() {
   el.browsePane?.classList.toggle('d-none', env.profile.is_anonymous);
   el.browsePane?.classList.toggle('d-md-none', env.profile.is_anonymous);
   el.root?.style.setProperty('--browse-pane-width', env.profile.is_anonymous ? '0' : '320px');
-  [el.saveBtn, el.dupBtn, el.delBtn, el.backBtn, el.shareBtn, ...el.newBtns, el.browsePane].forEach(e => {
+  [el.saveBtn, el.dupBtn, el.delMenuBtn, el.backBtn, el.shareMenuBtn, ...el.newBtns, el.browsePane].forEach(e => {
     e?.toggleAttribute('hidden', env.profile.is_anonymous);
   });
-  [el.saveBtn, el.delBtn, el.shareBtn].forEach(e => {
+  [el.saveBtn, el.shareMenuBtn, el.delMenuBtn].forEach(e => {
     e?.toggleAttribute('hidden', !env.activeRecord?.response.can_edit);
   });
   el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
@@ -255,8 +267,9 @@ async function handleUserChange() {
   el.unauthOnlyLis.forEach(e => e.toggleAttribute('hidden', !env.profile.is_anonymous));
 
   if (env.profile.is_anonymous) {
-    makeModalForm(el.loginLink, 'login_form', handleLogin);
-    makeModalForm(el.regLink, 'register_form', handleRegister);
+    makeModalForm('login', el.loginLink, '/static/login_form.html', handleLogin);
+    makeModalForm('reg', el.regLink, '/static/register_form.html', handleRegister);
+    delete env.modalListeners.change;
   } else {
     el.newBtns.forEach(e => e.addEventListener('click', () => createNewRecord()));
     el.dupBtn?.addEventListener('click', async () => {
@@ -268,7 +281,9 @@ async function handleUserChange() {
       }
     });
     el.delBtn?.addEventListener('click', deleteCurrentRecord);
-    makeModalForm(el.passChangeLink, 'pass_change_form', handlePassChange);
+    makeModalForm('change', el.passChangeLink, '/static/pass_change_form.html', handlePassChange);
+    delete env.modalListeners.login;
+    delete env.modalListeners.reg;
 
     el.logoutLink?.addEventListener('click', e => {
       e.preventDefault();
@@ -279,6 +294,8 @@ async function handleUserChange() {
 }
 
 function handleRecordChange() {
+  document.title = env.activeRecord ? `${env.activeRecord?.response.title_line} : WildChord` : 'WildChord';
+
   el.activeRecordCards.forEach(card => {
     card.classList.toggle('active', card.dataset.id === env.activeRecordId);
   });
@@ -286,12 +303,10 @@ function handleRecordChange() {
     el.cm?.destroy();
   }
 
-  const recordResponse = env.activeRecord === null ? null : env.activeRecord?.response ?? null;
-
   el.browsePane?.classList.toggle('d-none', env.activeRecord !== null);
   el.editorPane?.classList.toggle('d-none', env.activeRecord === null);
 
-  [el.saveBtn, el.delBtn, el.shareBtn].forEach(e => {
+  [el.saveBtn, el.delMenuBtn, el.shareMenuBtn].forEach(e => {
     e?.toggleAttribute('hidden', !env.activeRecord?.response.can_edit);
   });
   el.dupBtn?.toggleAttribute('hidden', env.profile.is_anonymous || env.activeRecord?.response.can_edit);
@@ -323,18 +338,23 @@ function handleRecordChange() {
       }
     };
 
-  if (el.shareAddr) {
-    el.shareAddr?.select();
-    el.shareAddr?.setSelectionRange(0, 999);
-    navigator.clipboard.writeText(el.shareAddr.value);
-  }
-
   if (env.activeRecord) {
     if (el.saveBtn)
       el.saveBtn.onclick = () => {
         saveCurrentRecord();
       };
   }
+
+  if (el.fontDownBtn)
+    el.fontDownBtn.onclick = () => {
+      let currentFontAdj = parseInt(el.editorPane?.style.getPropertyValue('--font-size-adj') || '0');
+      el.editorPane?.style.setProperty('--font-size-adj', (currentFontAdj - 1).toString());
+    };
+  if (el.fontUpBtn)
+    el.fontUpBtn.onclick = () => {
+      let currentFontAdj = parseInt(el.editorPane?.style.getPropertyValue('--font-size-adj') || '0');
+      el.editorPane?.style.setProperty('--font-size-adj', (currentFontAdj + 1).toString());
+    };
 }
 
 function handleShareStateChange() {
@@ -357,7 +377,11 @@ async function loadContents() {
   let r = null;
 
   const urlPath = window.location.pathname.replace(/\/+$/, '').split('/');
-  if (urlPath[urlPath.length - 2] === 'r') r = urlPath[urlPath.length - 1];
+  if (urlPath[urlPath.length - 2] === 'r') {
+    r = urlPath[urlPath.length - 1];
+  } else if (urlPath[1] !== '') {
+    history.pushState({ r: null }, '', '/');
+  }
 
   await fetchRecordsList();
   handleUserChange();
@@ -473,15 +497,15 @@ async function saveCurrentRecord() {
 }
 
 async function fetchHTMLElement(filename: string) {
-  const response = (await axios.get(`/static/${filename}.html`)).data;
+  const response = (await axios.get(filename)).data;
   const dummy = document.createElement('div');
   dummy.innerHTML = response;
   return dummy.childElementCount === 1 ? dummy.firstChild : dummy;
 }
 
-function makeModalForm(activator: HTMLElement | null, templateName: string, handler: Function) {
+function makeModalForm(name: string, activator: HTMLElement | null, templateName: string, handler: Function) {
   if (activator) {
-    activator.onclick = async e => {
+    const listener = async (e: Event, pushState = true) => {
       e.preventDefault();
       const modal = (await fetchHTMLElement(templateName)) as HTMLElement;
       document.querySelector('body')?.prepend(modal);
@@ -492,10 +516,16 @@ function makeModalForm(activator: HTMLElement | null, templateName: string, hand
         Modal.getInstance(modal as Element)?.hide();
       });
       new Modal(modal as Element)?.show();
-      modal.addEventListener('shown.bs.modal', () =>
-        modal.querySelector<HTMLInputElement>('input:first-child')?.focus()
-      );
-      modal.addEventListener('hidden.bs.modal', () => modal.remove());
+      modal.addEventListener('shown.bs.modal', () => {
+        if (pushState) history.replaceState(history.state, document.title, `?mod=${name}`);
+        modal.querySelector<HTMLInputElement>('input[autofocus]')?.focus();
+      });
+      modal.addEventListener('hidden.bs.modal', () => {
+        history.replaceState(history.state, document.title, window.location.pathname);
+        modal.remove();
+      });
     };
+    env.modalListeners[name] = listener;
+    activator.onclick = listener;
   }
 }

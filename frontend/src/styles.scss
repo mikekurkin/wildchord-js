@@ -18,13 +18,17 @@
 
   --hl-chord: blue;
   --hl-tuning: #708;
+
+  .cm-content {
+    --bs-body-bg: hsl(60, 20%, 98%);
+  }
 }
 
 .dropdown-menu {
   --bs-dropdown-min-width: 80px;
 }
 
-.share-menu input[type="text"] {
+.shr-menu input[type="text"] {
   border-color: #6c757d;
 }
 
@@ -37,7 +41,7 @@
 body.dark {
   
     --bs-border-color: hsl(0, 0%, 30%);
-    --bs-body-bg: hsl(0, 0%, 16%);
+    --bs-body-bg: hsl(0, 0%, 22%);
     --bs-body-color: hsl(0, 0%, 75%);
     --bs-selection-bg: hsl(0, 0%, 20%);
     --bs-selection-bg-2: hsl(222, 15%, 26%);
@@ -45,6 +49,10 @@ body.dark {
 
     --hl-chord: #C792EA;
     --hl-tuning: #F78C6C;
+
+  .cm-content {
+    --bs-body-bg: hsl(0, 0%, 18%);
+  }
 
   .modal-content {
     --bs-modal-bg: var(--bs-body-bg);
@@ -157,6 +165,7 @@ body.dark {
 }
 
 .editor-pane {
+  --font-size-adj: 0;
   max-width: calc(100vw - var(--browse-pane-width));
   width: calc(100vw - var(--browse-pane-width));
 }
@@ -196,12 +205,14 @@ body {
 
 .cm-editor {
   height: 100% !important;
-  font-size: 14pt;
+  font-size: calc((14 + var(--font-size-adj)) * 1pt);
 }
 
 .cm-cursor {border-left-color: var(--bs-body-color) !important;}
+.cm-content {caret-color: var(--bs-body-color) !important;}
 
 .cm-content {
+  background-color: var(--bs-body-bg);
   padding-bottom: 50px !important;
   padding-top: 20px !important;
   padding-right: 10px !important;
@@ -225,7 +236,7 @@ body {
 }
 
 .cm-lineNumbers .cm-gutterElement {
-  min-width: 38px !important;
+  min-width: 4ch !important;
 }
 
 .cm-activeLine {
