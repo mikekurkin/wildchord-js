@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestHeaders, AxiosResponse } from 'axios'
 import { LoginResponse, RecordListResponse, RecordResponse, RefreshResponse, User } from './types';
 
 export class Api {
-  ax: AxiosInstance;
+  private ax: AxiosInstance;
 
   constructor(root = '') {
     this.ax = axios.create({
@@ -126,9 +126,15 @@ export class Api {
     return data as User;
   }
 
-  async getRecordsList(search?: string) {
-    const searchString = search && search !== '' ? '?search=' + search : '';
-    const { data } = await this.ax.get(`/records${searchString}`, { headers: await this.headers });
+  async getRecordsList(search?: string, page?: number) {
+    let params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (page) params.append('page', page.toString());
+    const paramString = params.toString();
+    const requestURL = `/records${paramString === '' ? '' : `?${paramString}`}`;
+    // const searchString = search && search !== '' ? '?search=' + search : '';
+    const { data } = await this.ax.get(requestURL, { headers: await this.headers });
+
     return data as RecordListResponse;
   }
 

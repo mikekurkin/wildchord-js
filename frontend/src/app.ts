@@ -103,16 +103,33 @@ export const env = {
     this.fetchedRecords = obj;
   },
 
+  addFetchedRecordsFromResponseArray(array: Array<RecordResponse>) {
+    const obj = {} as { [id: string]: Record };
+    array.forEach(response => (obj[response.id] = new Record(response)));
+    this.fetchedRecords = { ...this.fetchedRecords, ...obj };
+  },
+
   get profile(): User {
     if (localStorage.getItem('profile') === null) return new NullUser();
     else return JSON.parse(localStorage.getItem('profile')!);
   },
 
   modalListeners: {} as { [id: string]: EventListener },
+
+  nextPage: null as number | null,
+
+  _searchText: null as string | null,
+  get searchText() { return this._searchText },
+  set searchText(value) {
+    if (!this.searchText !== !value) {
+      env.nextPage = null;
+    }
+    this._searchText = value;
+    fetchRecordsList(value ?? undefined, env.nextPage ?? undefined);
+  }
 };
 
 export const el = {
-  // cm: null as EditorFromTextArea | null,
   cm: null as EditorView | null,
   get root() {
     return document.querySelector<HTMLElement>(':root');
@@ -130,6 +147,9 @@ export const el = {
     return document.querySelector<HTMLInputElement>('.searchbar input');
   },
   get browseItems() {
+    return document.querySelector<HTMLDivElement>('.browse-items');
+  },
+  get browseItemsListGroup() {
     return document.querySelector<HTMLUListElement>('.browse-items > .list-group');
   },
   get editorPane() {
@@ -415,6 +435,16 @@ async function loadContents() {
   if (el.errorAlert) {
     Toast.getOrCreateInstance(el.errorAlert).dispose();
   }
+
+  if (el.browseItems) {
+    el.browseItems.onscroll = () => {
+      if (el.browseItems && env.nextPage) {
+        if (el.browseItems.offsetHeight + el.browseItems.scrollTop >= el.browseItems.scrollHeight - 150) {
+          fetchRecordsList(undefined, env.nextPage);
+        }
+      }
+    };
+  }
 }
 
 async function handleLogin() {
@@ -439,14 +469,16 @@ async function handlePassChange() {
   await api.authChangePass(oldPassword, newPassword, confirmation);
 }
 
-async function fetchRecordsList(search?: string) {
+async function fetchRecordsList(search?: string, page?: number) {
   if (env.profile.is_anonymous) {
     env.fetchedRecords = {};
     return;
   }
   try {
-    const result = await api.getRecordsList(search);
-    env.setFetchedRecordsFromResponseArray(result.results);
+    const result = await api.getRecordsList(search, page);
+    if (page) env.addFetchedRecordsFromResponseArray(result.results);
+    else env.setFetchedRecordsFromResponseArray(result.results);
+    env.nextPage = parseInt(result.next) || null;
   } catch {
     env.fetchedRecords = {};
   }
@@ -471,7 +503,7 @@ window.addEventListener('wc-cards-updated', () => {
   result.forEach(record => {
     cards.push(record.card);
   });
-  el.browseItems?.replaceChildren(...cards);
+  el.browseItemsListGroup?.replaceChildren(...cards);
 });
 
 async function createNewRecord(contents?: string) {
