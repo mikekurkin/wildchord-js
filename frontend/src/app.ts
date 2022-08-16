@@ -84,11 +84,11 @@ export const env = {
   },
 
   get activeRecord() {
-    if (!this.activeRecordId || !this.fetchedRecords[this.activeRecordId]) return null;
-    else return this.fetchedRecords[this.activeRecordId];
+    if (!this.activeRecordId || !this.fetchedRecords.get(this.activeRecordId)) return null;
+    else return this.fetchedRecords.get(this.activeRecordId);
   },
 
-  _fetchedRecords: {} as { [id: string]: Record },
+  _fetchedRecords: new Map<string, Record>(),
   get fetchedRecords() {
     return this._fetchedRecords;
   },
@@ -98,15 +98,15 @@ export const env = {
   },
 
   setFetchedRecordsFromResponseArray(array: Array<RecordResponse>) {
-    const obj = {} as { [id: string]: Record };
-    array.forEach(response => (obj[response.id] = new Record(response)));
+    const obj = new Map<string, Record>();
+    array.forEach(response => obj.set(response.id, new Record(response)));
     this.fetchedRecords = obj;
   },
 
   addFetchedRecordsFromResponseArray(array: Array<RecordResponse>) {
-    const obj = {} as { [id: string]: Record };
-    array.forEach(response => (obj[response.id] = new Record(response)));
-    this.fetchedRecords = { ...this.fetchedRecords, ...obj };
+    const obj = new Map<string, Record>();
+    array.forEach(response => obj.set(response.id, new Record(response)));
+    this.fetchedRecords = new Map([...this.fetchedRecords, ...obj]);
   },
 
   get profile(): User {
@@ -119,14 +119,13 @@ export const env = {
   nextPage: null as number | null,
 
   _searchText: null as string | null,
-  get searchText() { return this._searchText },
+  get searchText() {
+    return this._searchText;
+  },
   set searchText(value) {
-    if (!this.searchText !== !value) {
-      env.nextPage = null;
-    }
     this._searchText = value;
     fetchRecordsList(value ?? undefined, env.nextPage ?? undefined);
-  }
+  },
 };
 
 export const el = {
@@ -296,7 +295,8 @@ async function handleUserChange() {
       const id = env.activeRecordId;
       if (id) {
         await createNewRecord(env.activeRecord?.response.contents);
-        const { [id]: deleted, ...rest } = env.fetchedRecords;
+        const rest = new Map(env.fetchedRecords);
+        rest.delete(id);
         env.fetchedRecords = rest;
       }
     });
@@ -409,12 +409,11 @@ async function loadContents() {
 
   el.searchbar?.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      this.value = '';
-      fetchRecordsList();
+      env.searchText = this.value = '';
     }
   });
   el.searchbar?.addEventListener('input', function () {
-    fetchRecordsList(this.value);
+    env.searchText = this.value;
   });
 
   if (el.backBtn) {
@@ -439,8 +438,10 @@ async function loadContents() {
   if (el.browseItems) {
     el.browseItems.onscroll = () => {
       if (el.browseItems && env.nextPage) {
+        const nextPage = env.nextPage;
+        env.nextPage = null;
         if (el.browseItems.offsetHeight + el.browseItems.scrollTop >= el.browseItems.scrollHeight - 150) {
-          fetchRecordsList(undefined, env.nextPage);
+          fetchRecordsList(env.searchText ?? undefined, nextPage);
         }
       }
     };
@@ -471,7 +472,7 @@ async function handlePassChange() {
 
 async function fetchRecordsList(search?: string, page?: number) {
   if (env.profile.is_anonymous) {
-    env.fetchedRecords = {};
+    env.fetchedRecords = new Map();
     return;
   }
   try {
@@ -480,12 +481,12 @@ async function fetchRecordsList(search?: string, page?: number) {
     else env.setFetchedRecordsFromResponseArray(result.results);
     env.nextPage = parseInt(result.next) || null;
   } catch {
-    env.fetchedRecords = {};
+    env.fetchedRecords = new Map();
   }
 }
 
 async function fetchRecordDetails(id: string) {
-  let record = env.fetchedRecords[id];
+  let record = env.fetchedRecords.get(id);
   if (!record) {
     record = new Record(await api.getRecordDetails(id));
     env.fetchedRecords = { ...env.fetchedRecords, [record.id]: record };
@@ -497,7 +498,7 @@ async function fetchRecordDetails(id: string) {
 
 window.addEventListener('wc-cards-updated', () => {
   let cards = new Array<HTMLAnchorElement>();
-  let result = Object.values(env.fetchedRecords).sort(
+  let result = [...env.fetchedRecords.values()].sort(
     (a, b) => new Date(b.response.update_timestamp).getTime() - new Date(a.response.update_timestamp).getTime()
   );
   result.forEach(record => {
@@ -509,7 +510,7 @@ window.addEventListener('wc-cards-updated', () => {
 async function createNewRecord(contents?: string) {
   saveCurrentRecord();
   const newRecord = await Record.create(contents);
-  env.fetchedRecords = { ...env.fetchedRecords, [newRecord.id]: newRecord };
+  env.fetchedRecords = new Map( [...env.fetchedRecords.entries(), [newRecord.id, newRecord]] );
   env.activeRecordId = newRecord.id;
 }
 
@@ -517,9 +518,10 @@ async function deleteCurrentRecord() {
   const id = env.activeRecordId;
   if (!id) return;
 
-  const record = env.fetchedRecords[id];
-  await record.delete();
-  const { [id]: deleted, ...rest } = env.fetchedRecords;
+  const record = env.fetchedRecords.get(id);
+  await record?.delete();
+  const rest = new Map(env.fetchedRecords);
+  rest.delete(id);
   env.fetchedRecords = rest;
   env.activeRecordId = null;
 }
