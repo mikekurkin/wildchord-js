@@ -1,6 +1,14 @@
 version: '3'
 
 services:
+  db:
+    image: postgres:14.5
+    restart: always
+    environment:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_USER: postgres
+    volumes:
+        - postgres:/var/lib/postgresql/data
   server:
     build: ./server
     env_file: 
@@ -12,6 +20,8 @@ services:
     ports:
       - "8000:8000"
     restart: on-failure
+    depends_on: 
+      - db
   frontend:
     build: ./frontend
     command: bash -c "npm run prebuild && npm run start"
@@ -22,3 +32,6 @@ services:
     ports:
       - "80:8080"
     restart: on-failure
+
+volumes:
+  postgres:
